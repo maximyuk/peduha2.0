@@ -4,18 +4,20 @@ WORKDIR /app
 
 # Встановлення залежностей
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt gunicorn
 
 # Копіювання коду додатку
 COPY . .
 
+# Створення папки для БД
+RUN mkdir -p /app/data
+
 # Встановлення змінних оточення
 ENV FLASK_APP=app.py
-ENV FLASK_ENV=production
 ENV PYTHONUNBUFFERED=1
 
 # Відкриття портів
 EXPOSE 5000
 
-# Запуск додатку
-CMD ["python", "-m", "flask", "run", "--host=0.0.0.0"]
+# Запуск додатку з Gunicorn
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "--timeout", "120", "app:app"]
