@@ -19,7 +19,7 @@
           <span class="topbar-note">Офіційний сайт коледжу</span>
           <div class="topbar-actions">
             <button class="chip" type="button">UA</button>
-            <button class="chip" type="button">EN</button>
+            <!-- <button class="chip" type="button">EN</button> -->
             <a class="chip ghost" href="#">Пошук</a>
             {% if current_user %}
               <a class="chip ghost" href="{{ url_for('admin_dashboard') }}">Панель</a>
@@ -31,7 +31,7 @@
         </div>
       </div>
 
-      <div class="container nav-wrapper">
+<div class="container nav-wrapper">
         <div class="brand">
           <div class="logo-mark is-fallback">
             <img
@@ -50,13 +50,46 @@
             >
           </div>
         </div>
-        <button class="nav-toggle" type="button" data-nav-toggle aria-expanded="false" aria-controls="site-nav">
-          Меню
-        </button>
-        <nav class="site-nav" id="site-nav" data-nav>
+        <!-- Desktop Navigation -->
+        <nav class="site-nav desktop-nav" id="site-nav" data-nav>
           {% from "_menu.html" import render_menu %}
           {{ render_menu(menu_items, active_title) }}
         </nav>
+      </div>
+
+      <!-- Mobile Bottom Navigation -->
+      <nav class="mobile-nav" id="mobile-nav">
+        <div class="mobile-nav-inner">
+          <a href="/" class="mobile-nav-item {% if active_title == 'Головна' %}active{% endif %}">
+            <div class="mobile-nav-icon">🏠</div>
+            <span>Головна</span>
+          </a>
+          <a href="/articles" class="mobile-nav-item {% if 'Новини' in active_title %}active{% endif %}">
+            <div class="mobile-nav-icon">📰</div>
+            <span>Новини</span>
+          </a>
+          <a href="/admissions-2026" class="mobile-nav-item {% if 'Вступ' in active_title %}active{% endif %}">
+            <div class="mobile-nav-icon">🎓</div>
+            <span>Вступ</span>
+          </a>
+          <button class="mobile-nav-item mobile-nav-more" type="button" id="mobile-menu-toggle">
+            <div class="mobile-nav-icon">☰</div>
+            <span>Більше</span>
+          </button>
+        </div>
+      </nav>
+
+      <!-- Mobile Menu Overlay -->
+      <div class="mobile-menu-overlay" id="mobile-menu-overlay">
+        <div class="mobile-menu-panel">
+          <div class="mobile-menu-header">
+            <h3 class="mobile-menu-title">Меню</h3>
+            <button class="mobile-menu-close" type="button" id="mobile-menu-close">×</button>
+          </div>
+          <div class="mobile-menu-content" id="mobile-menu-content">
+            <!-- Mobile menu content will be inserted here by JavaScript -->
+          </div>
+        </div>
       </div>
     </header>
 
@@ -98,24 +131,41 @@
             </div>
           </div>
           <p class="footer-note">
-            Адреса: вул. Освітня, 12, м. Володимир · Тел: +38 (000) 000-00-00
+            Адреса: вул. Устилузька, м. Володимир · Тел: +38 (000) 000-00-00
           </p>
         </div>
-        <div class="footer-logos">
-          <div class="logo-tile">МОН</div>
-          <div class="logo-tile">ДПА</div>
-          <div class="logo-tile">OSVITA</div>
-          <div class="logo-tile">EDEBO</div>
-        </div>
+<!-- <div class="footer-logos">
+          <a href="/mon" class="logo-tile">
+            <img src="images/mon.png" alt="МОН" />
+            <span>МОН</span>
+          </a>
+          <a href="/dpa" class="logo-tile">
+            <img src="images/dpa.png" alt="ДПА" />
+            <span>ДПА</span>
+          </a>
+          <a href="/osvita" class="logo-tile">
+            <img src="images/mon.png" alt="OSVITA" />
+            <span>OSVITA</span>
+          </a>
+          <a href="/edebo" class="logo-tile">
+            <img src="images/mon.png" alt="EDEBO" />
+            <span>EDEBO</span>
+          </a> -->
+        <!-- </div>
         <div class="footer-links">
           <a href="#">Публічна інформація</a>
           <a href="#">Електронна бібліотека</a>
           <a href="#">Політика конфіденційності</a>
           <a href="#">Контакти</a>
-        </div>
+        </div> -->
       </div>
     </footer>
 
+<script>
+      // Pass menu data to JavaScript
+      window.menuItems = {{ menu_items|tojson|safe }};
+      window.activeTitle = {{ active_title|tojson|safe }};
+    </script>
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
   </body>
 </html>

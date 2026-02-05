@@ -15,17 +15,17 @@
       <div class="hero-actions">
         <a class="btn primary" href="{{ url_for('admissions') }}">Абітурієнт-2026</a>
         <a class="btn outline" href="#courses">Записатися на курси</a>
-        <a class="btn ghost" href="#survey">Пройти опитування</a>
+        <!-- <a class="btn ghost" href="#survey">Пройти опитування</a> -->
       </div>
       <div class="hero-meta">
         <div class="hero-meta-item">
-          <span class="meta-label">Програми</span>
-          <span class="meta-value">12</span>
+          <span class="meta-label">Спеціальності</span>
+          <span class="meta-value">7</span>
         </div>
-        <div class="hero-meta-item">
+        <!-- <div class="hero-meta-item">
           <span class="meta-label">Партнери</span>
           <span class="meta-value">40+</span>
-        </div>
+        </div> -->
         <div class="hero-meta-item">
           <span class="meta-label">Студенти</span>
           <span class="meta-value">1 200+</span>
@@ -49,7 +49,7 @@
       <div class="cta-stack" id="survey">
         <a class="btn primary" href="#">Записатися на курси</a>
         <a class="btn secondary" href="{{ url_for('admissions') }}">Абітурієнт-2026</a>
-        <a class="btn outline" href="#">Пройти опитування</a>
+        <!-- <a class="btn outline" href="#">Пройти опитування</a> -->
       </div>
     </div>
   </section>
@@ -83,7 +83,7 @@
           {% endfor %}
         </div>
       {% else %}
-        <div class="empty-state">Поки що статей немає. Додайте першу через адмінку.</div>
+        <div class="empty-state">Поки що статей немає. Додайте першу статтю.</div>
       {% endif %}
     </div>
   </section>
