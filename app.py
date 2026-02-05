@@ -1,3 +1,4 @@
+
 from __future__ import annotations
 
 import os
@@ -300,12 +301,12 @@ def ensure_menu_urls(cursor: sqlite3.Cursor) -> None:
         title = row["title"]
         url = (row["url"] or "").strip()
 
+        # Студенту розділи повинні бути розділами зі статтями (/section/...), а не сторінками
         if item_id in student_ids_set:
-            if not url or url == "#" or url.startswith("/section/"):
-                slug = slugify_uk(title) or f"page-{item_id}"
+            if not url or url == "#" or url.startswith("/page/"):
                 cursor.execute(
                     "UPDATE menu_items SET url = ? WHERE id = ?",
-                    (f"/page/{slug}", item_id),
+                    (f"/section/{item_id}", item_id),
                 )
             continue
 
@@ -827,6 +828,7 @@ def admin_article_new():
         section_id = int(section_id) if section_id else None
         published_date = request.form.get("published_date") or datetime.utcnow().date().isoformat()
         event_date = request.form.get("event_date") or None
+        external_link = request.form.get("external_link", "").strip() or None
 
         if not title or not summary or not content:
             flash("Заповніть назву, опис та текст статті.", "error")
@@ -834,8 +836,8 @@ def admin_article_new():
             execute_db(
                 """
                 INSERT INTO articles
-                (title, summary, content, category, section_id, published_date, event_date, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (title, summary, content, category, section_id, published_date, event_date, external_link, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     title,
@@ -845,6 +847,7 @@ def admin_article_new():
                     section_id,
                     published_date,
                     event_date,
+                    external_link,
                     datetime.utcnow().isoformat(),
                     datetime.utcnow().isoformat(),
                 ),
@@ -877,6 +880,7 @@ def admin_article_edit(article_id: int):
         section_id = int(section_id) if section_id else None
         published_date = request.form.get("published_date") or datetime.utcnow().date().isoformat()
         event_date = request.form.get("event_date") or None
+        external_link = request.form.get("external_link", "").strip() or None
 
         if not title or not summary or not content:
             flash("Заповніть назву, опис та текст статті.", "error")
@@ -885,7 +889,7 @@ def admin_article_edit(article_id: int):
                 """
                 UPDATE articles
                 SET title = ?, summary = ?, content = ?, category = ?, section_id = ?,
-                    published_date = ?, event_date = ?, updated_at = ?
+                    published_date = ?, event_date = ?, external_link = ?, updated_at = ?
                 WHERE id = ?
                 """,
                 (
@@ -896,6 +900,7 @@ def admin_article_edit(article_id: int):
                     section_id,
                     published_date,
                     event_date,
+                    external_link,
                     datetime.utcnow().isoformat(),
                     article_id,
                 ),
