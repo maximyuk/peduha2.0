@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="uk">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% block title %}ВПФК — Офіційний сайт коледжу{% endblock %}</title>
+    <meta
+      name="description"
+      content="Офіційний сайт коледжу: вступ, новини, події, підготовчі курси, електронна бібліотека та публічна інформація."
+    />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Перейти до основного контенту</a>
+
+    <header class="site-header">
+      <div class="topbar">
+        <div class="container topbar-inner">
+          <span class="topbar-note">Офіційний сайт коледжу</span>
+          <div class="topbar-actions">
+            <button class="chip" type="button">UA</button>
+            <button class="chip" type="button">EN</button>
+            <a class="chip ghost" href="#">Пошук</a>
+            {% if current_user %}
+              <a class="chip ghost" href="{{ url_for('admin_dashboard') }}">Панель</a>
+              <a class="chip ghost" href="{{ url_for('logout') }}">Вийти</a>
+            {% else %}
+              <a class="chip ghost" href="{{ url_for('login') }}">Вхід</a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="container nav-wrapper">
+        <div class="brand">
+          <div class="logo-mark is-fallback">
+            <img
+              src="{{ url_for('static', filename='images/logo.png') }}"
+              alt="??????? ????"
+              onload="this.closest('.logo-mark').classList.remove('is-fallback')"
+              onerror="if(!this.dataset.fallback){this.dataset.fallback='1'; this.src='/images/logo.png'; return;} this.closest('.logo-mark').classList.add('is-fallback'); this.remove();"
+            />
+            <span class="logo-fallback">????</span>
+          </div>
+          <div class="brand-text">
+            <span class="brand-title">ВПФК</span>
+            <span class="brand-subtitle"
+              >Володимирський педагогічний фаховий коледж імені Агатангела
+              Кримського</span
+            >
+          </div>
+        </div>
+        <button class="nav-toggle" type="button" data-nav-toggle aria-expanded="false" aria-controls="site-nav">
+          Меню
+        </button>
+        <nav class="site-nav" id="site-nav" data-nav>
+          {% from "_menu.html" import render_menu %}
+          {{ render_menu(menu_items, active_title) }}
+        </nav>
+      </div>
+    </header>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-wrap">
+          <div class="container flash-messages">
+            {% for category, message in messages %}
+              <div class="flash {{ category }}">{{ message }}</div>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <main id="main">
+      {% block content %}{% endblock %}
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-grid">
+        <div>
+          <div class="brand footer-brand">
+            <div class="logo-mark is-fallback">
+            <img
+              src="{{ url_for('static', filename='images/logo.png') }}"
+              alt="??????? ????"
+              onload="this.closest('.logo-mark').classList.remove('is-fallback')"
+              onerror="if(!this.dataset.fallback){this.dataset.fallback='1'; this.src='/images/logo.png'; return;} this.closest('.logo-mark').classList.add('is-fallback'); this.remove();"
+            />
+            <span class="logo-fallback">????</span>
+          </div>
+            <div class="brand-text">
+              <span class="brand-title">ВПФК</span>
+              <span class="brand-subtitle"
+                >Володимирський педагогічний фаховий коледж імені Агатангела
+                Кримського</span
+              >
+            </div>
+          </div>
+          <p class="footer-note">
+            Адреса: вул. Освітня, 12, м. Володимир · Тел: +38 (000) 000-00-00
+          </p>
+        </div>
+        <div class="footer-logos">
+          <div class="logo-tile">МОН</div>
+          <div class="logo-tile">ДПА</div>
+          <div class="logo-tile">OSVITA</div>
+          <div class="logo-tile">EDEBO</div>
+        </div>
+        <div class="footer-links">
+          <a href="#">Публічна інформація</a>
+          <a href="#">Електронна бібліотека</a>
+          <a href="#">Політика конфіденційності</a>
+          <a href="#">Контакти</a>
+        </div>
+      </div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  </body>
+</html>

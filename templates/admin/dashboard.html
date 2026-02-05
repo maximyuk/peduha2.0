@@ -1,0 +1,43 @@
+{% extends "layout.html" %}
+
+{% block title %}Панель керування — ВПФК{% endblock %}
+
+{% block content %}
+  <section class="section">
+    <div class="container admin-shell">
+      <div class="admin-header">
+        <div>
+          <h1>Панель керування</h1>
+          <p>Робота з користувачами, меню та статтями.</p>
+        </div>
+        <div class="admin-actions">
+          <a class="btn outline" href="{{ url_for('admin_articles') }}">Статті</a>
+          <a class="btn outline" href="{{ url_for('admin_menu') }}">Меню</a>
+          {% if current_user and current_user.role in ['owner', 'admin'] %}
+            <a class="btn outline" href="{{ url_for('admin_users') }}">Користувачі</a>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="admin-card-grid">
+        <div class="admin-card">
+          <h3>Статті</h3>
+          <p>Оголошення, події та новини з датами публікації.</p>
+          <a class="link" href="{{ url_for('admin_articles') }}">Керувати статтями</a>
+        </div>
+        <div class="admin-card">
+          <h3>Меню та підрозділи</h3>
+          <p>Редагуйте назви і посилання розділів сайту.</p>
+          <a class="link" href="{{ url_for('admin_menu') }}">Керувати меню</a>
+        </div>
+        {% if current_user and current_user.role in ['owner', 'admin'] %}
+          <div class="admin-card">
+            <h3>Користувачі</h3>
+            <p>Власник створює адмінів і редакторів, адміністратор — редакторів.</p>
+            <a class="link" href="{{ url_for('admin_users') }}">Керувати користувачами</a>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+{% endblock %}

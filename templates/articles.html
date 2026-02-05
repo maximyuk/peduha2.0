@@ -1,0 +1,85 @@
+{% extends "layout.html" %}
+
+{% block title %}Статті — ВПФК{% endblock %}
+
+{% block content %}
+  <section class="section">
+    <div class="container">
+      <div class="section-header">
+        <h1>Статті</h1>
+        {% if current_user %}
+          <a class="link" href="{{ url_for('admin_articles') }}">Додати статтю</a>
+        {% endif %}
+      </div>
+
+      <form class="filter-bar" method="get">
+        <label class="filter-field">
+          Категорія
+          <select class="select" name="category">
+            <option value="">Усі</option>
+            {% for cat in categories %}
+              <option value="{{ cat }}" {% if selected_category == cat %}selected{% endif %}>
+                {{ cat }}
+              </option>
+            {% endfor %}
+          </select>
+        </label>
+        <label class="filter-field">
+          Розділ
+          <select class="select" name="section_id">
+            <option value="">Усі</option>
+            {% for section in sections %}
+              <option value="{{ section.id }}" {% if selected_section == section.id|string %}selected{% endif %}>
+                {{ "-" * section.level }} {{ section.title }}
+              </option>
+            {% endfor %}
+          </select>
+        </label>
+        <button class="btn outline" type="submit">Фільтрувати</button>
+      </form>
+
+      {% set ns = namespace(has_articles=false) %}
+      {% for category, items in articles_by_category.items() %}
+        {% if items or selected_category %}
+          {% if items %}
+            {% set ns.has_articles = true %}
+          {% endif %}
+          <div class="category-block">
+            <div class="section-header">
+              <h2>{{ category }}</h2>
+            </div>
+            {% if items %}
+              <div class="article-list article-grid">
+                {% for article in items %}
+                  <article class="article-card">
+                    <div class="article-meta">
+                      <span class="badge">{{ article.category }}</span>
+                      <span class="muted">Публікація: {{ article.published_date }}</span>
+                      {% if article.event_date %}
+                        <span class="muted">Подія: {{ article.event_date }}</span>
+                      {% endif %}
+                    </div>
+                    <h3>
+                      <a href="{{ url_for('article_detail', article_id=article.id) }}">{{ article.title }}</a>
+                    </h3>
+                    <p>{{ article.summary }}</p>
+                    <div class="article-footer">
+                      <span class="muted">{{ article.section_title or 'Без розділу' }}</span>
+                      <a class="link" href="{{ url_for('article_detail', article_id=article.id) }}">Читати</a>
+                    </div>
+                  </article>
+                {% endfor %}
+              </div>
+            {% else %}
+              <div class="empty-state">У цій категорії поки немає статей.</div>
+            {% endif %}
+          </div>
+        {% endif %}
+      {% endfor %}
+
+      {% if not ns.has_articles %}
+        <div class="empty-state">Поки що статей немає.</div>
+      {% endif %}
+    </div>
+  </section>
+{% endblock %}

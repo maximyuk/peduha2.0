@@ -1,0 +1,51 @@
+{% extends "layout.html" %}
+
+{% block title %}Меню — ВПФК{% endblock %}
+
+{% block content %}
+  <section class="section">
+    <div class="container admin-shell">
+      <div class="admin-header">
+        <div>
+          <h1>Меню та підрозділи</h1>
+          <p>Редагуйте назви та посилання кожного розділу.</p>
+        </div>
+        <a class="btn primary" href="{{ url_for('admin_menu_new') }}">Новий пункт</a>
+      </div>
+
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Назва</th>
+              <th>Посилання</th>
+              <th>Порядок</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in items %}
+              <tr>
+                <td style="padding-left: {{ item.level * 20 }}px">
+                  {{ item.title }}
+                </td>
+                <td>{{ item.url }}</td>
+                <td>{{ item.sort_order }}</td>
+                <td class="table-actions">
+                  <a class="link" href="{{ url_for('admin_menu_edit', item_id=item.id) }}">Редагувати</a>
+                  <form method="post" action="{{ url_for('admin_menu_delete', item_id=item.id) }}">
+                    <button class="link danger" type="submit">Видалити</button>
+                  </form>
+                </td>
+              </tr>
+            {% else %}
+              <tr>
+                <td colspan="4">Немає пунктів меню.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+{% endblock %}

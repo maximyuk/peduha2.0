@@ -1,0 +1,25 @@
+{% extends "layout.html" %}
+
+{% block title %}Вхід — ВПФК{% endblock %}
+
+{% block content %}
+  <section class="section">
+    <div class="container admin-shell">
+      <div class="admin-card">
+        <h1>Вхід до панелі керування</h1>
+        <p>Використайте логін та пароль, щоб перейти до адмінки.</p>
+        <form method="post" class="form-grid">
+          <label class="form-field">
+            Логін
+            <input class="input" name="username" type="text" required />
+          </label>
+          <label class="form-field">
+            Пароль
+            <input class="input" name="password" type="password" required />
+          </label>
+          <button class="btn primary" type="submit">Увійти</button>
+        </form>
+      </div>
+    </div>
+  </section>
+{% endblock %}

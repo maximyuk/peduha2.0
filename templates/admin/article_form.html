@@ -1,0 +1,74 @@
+{% extends "layout.html" %}
+
+{% block title %}Стаття — ВПФК{% endblock %}
+
+{% block content %}
+  <section class="section">
+    <div class="container admin-shell">
+      <div class="admin-header">
+        <div>
+          <h1>{{ 'Редагувати статтю' if article else 'Нова стаття' }}</h1>
+          <p>Додавайте назву, опис, текст та дати публікації.</p>
+        </div>
+        <a class="btn outline" href="{{ url_for('admin_articles') }}">Назад</a>
+      </div>
+
+      <div class="admin-card">
+        <form method="post" class="form-grid">
+          <label class="form-field">
+            Назва
+            <input class="input" name="title" type="text" value="{{ article.title if article else '' }}" required />
+          </label>
+          <label class="form-field">
+            Короткий опис
+            <textarea class="textarea" name="summary" rows="3" required>{{ article.summary if article else '' }}</textarea>
+          </label>
+          <label class="form-field">
+            Повний текст
+            <textarea class="textarea" name="content" rows="6" required>{{ article.content if article else '' }}</textarea>
+          </label>
+          <label class="form-field">
+            Категорія
+            <select class="select" name="category">
+              {% for cat in categories %}
+                <option value="{{ cat }}" {% if article and article.category == cat %}selected{% endif %}>
+                  {{ cat }}
+                </option>
+              {% endfor %}
+            </select>
+          </label>
+          <label class="form-field">
+            Розділ сайту
+            <select class="select" name="section_id">
+              <option value="">Без прив'язки</option>
+              {% for section in sections %}
+                <option value="{{ section.id }}" {% if article and article.section_id == section.id %}selected{% endif %}>
+                  {{ "-" * section.level }} {{ section.title }}
+                </option>
+              {% endfor %}
+            </select>
+          </label>
+          <label class="form-field">
+            Дата публікації
+            <input
+              class="input"
+              name="published_date"
+              type="date"
+              value="{{ article.published_date if article else '' }}"
+            />
+          </label>
+          <label class="form-field">
+            Дата події (для подій)
+            <input
+              class="input"
+              name="event_date"
+              type="date"
+              value="{{ article.event_date if article else '' }}"
+            />
+          </label>
+          <button class="btn primary" type="submit">{{ 'Зберегти' if article else 'Створити' }}</button>
+        </form>
+      </div>
+    </div>
+  </section>
+{% endblock %}

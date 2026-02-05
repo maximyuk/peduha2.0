@@ -1,0 +1,45 @@
+{% extends "layout.html" %}
+
+{% block title %}{{ section_item.title }} — ВПФК{% endblock %}
+
+{% block content %}
+  <section class="section">
+    <div class="container">
+      <div class="section-header">
+        <h1>{{ section_item.title }}</h1>
+        <a class="link" href="{{ url_for('articles') }}">Усі статті</a>
+      </div>
+
+      {% if section_item.children %}
+        <div class="subsection-list">
+          {% for child in section_item.children %}
+            <a class="subsection-chip" href="{{ child.url }}">{{ child.title }}</a>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <div class="article-list">
+        {% for article in articles %}
+          <article class="article-card">
+            <div class="article-meta">
+              <span class="badge">{{ article.category }}</span>
+              <span class="muted">Публікація: {{ article.published_date }}</span>
+              {% if article.event_date %}
+                <span class="muted">Подія: {{ article.event_date }}</span>
+              {% endif %}
+            </div>
+            <h3>
+              <a href="{{ url_for('article_detail', article_id=article.id) }}">{{ article.title }}</a>
+            </h3>
+            <p>{{ article.summary }}</p>
+            <div class="article-footer">
+              <a class="link" href="{{ url_for('article_detail', article_id=article.id) }}">Читати</a>
+            </div>
+          </article>
+        {% else %}
+          <div class="empty-state">У цьому розділі поки немає статей.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+{% endblock %}

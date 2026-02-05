@@ -1,0 +1,51 @@
+{% extends "layout.html" %}
+
+{% block title %}Пункт меню — ВПФК{% endblock %}
+
+{% block content %}
+  <section class="section">
+    <div class="container admin-shell">
+      <div class="admin-header">
+        <div>
+          <h1>{{ 'Редагувати пункт меню' if item else 'Новий пункт меню' }}</h1>
+          <p>Підтримуйте актуальні назви та адреси сторінок.</p>
+        </div>
+        <a class="btn outline" href="{{ url_for('admin_menu') }}">Назад</a>
+      </div>
+
+      <div class="admin-card">
+        <form method="post" class="form-grid">
+          <label class="form-field">
+            Назва
+            <input class="input" name="title" type="text" value="{{ item.title if item else '' }}" required />
+          </label>
+          <label class="form-field">
+            Посилання
+            <input class="input" name="url" type="text" value="{{ item.url if item else '' }}" />
+          </label>
+          <label class="form-field">
+            Батьківський розділ
+            <select class="select" name="parent_id">
+              <option value="">Немає (верхній рівень)</option>
+              {% for parent in parents %}
+                <option value="{{ parent.id }}" {% if item and item.parent_id == parent.id %}selected{% endif %}>
+                  {{ "-" * parent.level }} {{ parent.title }}
+                </option>
+              {% endfor %}
+            </select>
+          </label>
+          <label class="form-field">
+            Порядок
+            <input
+              class="input"
+              name="sort_order"
+              type="number"
+              value="{{ item.sort_order if item else 0 }}"
+            />
+          </label>
+          <button class="btn primary" type="submit">{{ 'Зберегти' if item else 'Створити' }}</button>
+        </form>
+      </div>
+    </div>
+  </section>
+{% endblock %}

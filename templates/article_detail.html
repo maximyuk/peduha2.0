@@ -1,0 +1,26 @@
+{% extends "layout.html" %}
+
+{% block title %}{{ article.title }} — ВПФК{% endblock %}
+
+{% block content %}
+  <section class="section">
+    <div class="container article-detail">
+      <div class="article-meta">
+        <span class="badge">{{ article.category }}</span>
+        <span class="muted">Публікація: {{ article.published_date }}</span>
+        {% if article.event_date %}
+          <span class="muted">Подія: {{ article.event_date }}</span>
+        {% endif %}
+      </div>
+      <h1>{{ article.title }}</h1>
+      <p class="article-summary">{{ article.summary }}</p>
+      <div class="article-content">
+        {{ article.content }}
+      </div>
+      <div class="article-footer">
+        <span class="muted">{{ article.section_title or 'Без розділу' }}</span>
+        <a class="link" href="{{ url_for('articles') }}">До всіх статей</a>
+      </div>
+    </div>
+  </section>
+{% endblock %}

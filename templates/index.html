@@ -1,0 +1,90 @@
+{% extends "layout.html" %}
+
+{% block title %}ВПФК — Офіційний сайт коледжу{% endblock %}
+
+{% block content %}
+  <section class="hero">
+    <div class="hero-overlay"></div>
+    <div class="container hero-content">
+      <div class="hero-badge">Вступ 2026</div>
+      <h1>ВПФК — освітній простір, де стартують карʼєри</h1>
+      <p>
+        Підготовчі курси, сучасні програми та підтримка на кожному кроці вступу.
+        Дізнайтесь, як вступити за 3 кроки.
+      </p>
+      <div class="hero-actions">
+        <a class="btn primary" href="{{ url_for('admissions') }}">Абітурієнт-2026</a>
+        <a class="btn outline" href="#courses">Записатися на курси</a>
+        <a class="btn ghost" href="#survey">Пройти опитування</a>
+      </div>
+      <div class="hero-meta">
+        <div class="hero-meta-item">
+          <span class="meta-label">Програми</span>
+          <span class="meta-value">12</span>
+        </div>
+        <div class="hero-meta-item">
+          <span class="meta-label">Партнери</span>
+          <span class="meta-value">40+</span>
+        </div>
+        <div class="hero-meta-item">
+          <span class="meta-label">Студенти</span>
+          <span class="meta-value">1 200+</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container quick-actions">
+      <div class="info-card" id="courses">
+        <h3>Підготовчі курси</h3>
+        <p>Інтенсиви для впевненого вступу та адаптації першокурсників.</p>
+        <a class="link" href="#">Детальніше</a>
+      </div>
+      <div class="info-card">
+        <h3>Конкурси</h3>
+        <p>Олімпіади, гранти та змагання для майбутніх студентів.</p>
+        <a class="link" href="#">Переглянути всі</a>
+      </div>
+      <div class="cta-stack" id="survey">
+        <a class="btn primary" href="#">Записатися на курси</a>
+        <a class="btn secondary" href="{{ url_for('admissions') }}">Абітурієнт-2026</a>
+        <a class="btn outline" href="#">Пройти опитування</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section-alt">
+    <div class="container">
+      <div class="section-header">
+        <h2>Останні статті</h2>
+        <a class="link" href="{{ url_for('articles') }}">Усі статті</a>
+      </div>
+      {% if articles %}
+        <div class="article-list article-grid">
+          {% for article in articles %}
+            <article class="article-card">
+              <div class="article-meta">
+                <span class="badge">{{ article.category }}</span>
+                <span class="muted">Публікація: {{ article.published_date }}</span>
+                {% if article.event_date %}
+                  <span class="muted">Подія: {{ article.event_date }}</span>
+                {% endif %}
+              </div>
+              <h3>
+                <a href="{{ url_for('article_detail', article_id=article.id) }}">{{ article.title }}</a>
+              </h3>
+              <p>{{ article.summary }}</p>
+              <div class="article-footer">
+                <span class="muted">{{ article.section_title or 'Без розділу' }}</span>
+                <a class="link" href="{{ url_for('article_detail', article_id=article.id) }}">Читати</a>
+              </div>
+            </article>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-state">Поки що статей немає. Додайте першу через адмінку.</div>
+      {% endif %}
+    </div>
+  </section>
+{% endblock %}

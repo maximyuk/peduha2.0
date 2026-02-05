@@ -1,0 +1,49 @@
+{% extends "layout.html" %}
+
+{% block title %}Користувачі — ВПФК{% endblock %}
+
+{% block content %}
+  <section class="section">
+    <div class="container admin-shell">
+      <div class="admin-header">
+        <div>
+          <h1>Користувачі</h1>
+          <p>Створення облікових записів для адміністраторів та редакторів.</p>
+        </div>
+        <a class="btn primary" href="{{ url_for('admin_user_new') }}">Новий користувач</a>
+      </div>
+
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Логін</th>
+              <th>Роль</th>
+              <th>Створено</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for user in users %}
+              <tr>
+                <td>{{ user.username }}</td>
+                <td><span class="badge">{{ user.role }}</span></td>
+                <td>{{ user.created_at[:10] }}</td>
+                <td class="table-actions">
+                  <a class="link" href="{{ url_for('admin_user_edit', user_id=user.id) }}">Редагувати</a>
+                  <form method="post" action="{{ url_for('admin_user_delete', user_id=user.id) }}">
+                    <button class="link danger" type="submit">Видалити</button>
+                  </form>
+                </td>
+              </tr>
+            {% else %}
+              <tr>
+                <td colspan="4">Немає користувачів.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+{% endblock %}

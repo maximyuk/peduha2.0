@@ -1,0 +1,26 @@
+{% macro render_menu(items, active_title=None) %}
+  {% for item in items %}
+    {% set active_class = "nav-highlight" if item.title == active_title else "" %}
+    {% if item.children %}
+      <div class="nav-item has-submenu">
+        <span class="nav-title {{ active_class }}">{{ item.title }}</span>
+        <button
+          class="submenu-toggle"
+          type="button"
+          data-submenu-toggle
+          aria-expanded="false"
+          aria-label="Відкрити підрозділи {{ item.title }}"
+        >
+          v
+        </button>
+        <div class="submenu">
+          {% for child in item.children %}
+            <a href="{{ child.url or '#' }}">{{ child.title }}</a>
+          {% endfor %}
+        </div>
+      </div>
+    {% else %}
+      <a href="{{ item.url or '#' }}" class="{{ active_class }}">{{ item.title }}</a>
+    {% endif %}
+  {% endfor %}
+{% endmacro %}

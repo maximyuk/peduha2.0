@@ -1,0 +1,20 @@
+{% extends "layout.html" %}
+
+{% block title %}{{ page_title }} — ВПФК{% endblock %}
+
+{% block content %}
+  <section class="section">
+    <div class="container page-shell">
+      <h1>{{ page_title }}</h1>
+      {% if content %}
+        <div class="page-content">
+          {{ content | safe }}
+        </div>
+      {% else %}
+        <div class="empty-state">
+          Сторінка в розробці. Додайте файл у папку <strong>pages</strong>.
+        </div>
+      {% endif %}
+    </div>
+  </section>
+{% endblock %}

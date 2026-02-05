@@ -1,0 +1,53 @@
+{% extends "layout.html" %}
+
+{% block title %}Статті — ВПФК{% endblock %}
+
+{% block content %}
+  <section class="section">
+    <div class="container admin-shell">
+      <div class="admin-header">
+        <div>
+          <h1>Статті</h1>
+          <p>Оголошення, події та новини з датами публікації.</p>
+        </div>
+        <a class="btn primary" href="{{ url_for('admin_article_new') }}">Нова стаття</a>
+      </div>
+
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Назва</th>
+              <th>Категорія</th>
+              <th>Розділ</th>
+              <th>Публікація</th>
+              <th>Дата події</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for article in articles %}
+              <tr>
+                <td>{{ article.title }}</td>
+                <td><span class="badge">{{ article.category }}</span></td>
+                <td>{{ article.section_title or '-' }}</td>
+                <td>{{ article.published_date }}</td>
+                <td>{{ article.event_date or '-' }}</td>
+                <td class="table-actions">
+                  <a class="link" href="{{ url_for('admin_article_edit', article_id=article.id) }}">Редагувати</a>
+                  <form method="post" action="{{ url_for('admin_article_delete', article_id=article.id) }}">
+                    <button class="link danger" type="submit">Видалити</button>
+                  </form>
+                </td>
+              </tr>
+            {% else %}
+              <tr>
+                <td colspan="6">Немає статей.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+{% endblock %}
