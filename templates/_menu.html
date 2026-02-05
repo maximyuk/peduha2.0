@@ -1,8 +1,8 @@
-{% macro render_menu(items, active_title=None) %}
+{% macro render_menu(items, active_title=None, level=0) %}
   {% for item in items %}
     {% set active_class = "nav-highlight" if item.title == active_title else "" %}
     {% if item.children %}
-      <div class="nav-item has-submenu">
+      <div class="nav-item has-submenu submenu-level-{{ level }}">
         <span class="nav-title {{ active_class }}">{{ item.title }}</span>
         <button
           class="submenu-toggle"
@@ -11,11 +11,31 @@
           aria-expanded="false"
           aria-label="Відкрити підрозділи {{ item.title }}"
         >
-          v
+          {% if level > 0 %}→{% else %}v{% endif %}
         </button>
         <div class="submenu">
           {% for child in item.children %}
-            <a href="{{ child.url or '#' }}">{{ child.title }}</a>
+            {% if child.children %}
+              <div class="nav-item has-submenu submenu-level-{{ level + 1 }}">
+                <span class="nav-title">{{ child.title }}</span>
+                <button
+                  class="submenu-toggle"
+                  type="button"
+                  data-submenu-toggle
+                  aria-expanded="false"
+                  aria-label="Відкрити підрозділи {{ child.title }}"
+                >
+                  →
+                </button>
+                <div class="submenu">
+                  {% for grandchild in child.children %}
+                    <a href="{{ grandchild.url or '#' }}">{{ grandchild.title }}</a>
+                  {% endfor %}
+                </div>
+              </div>
+            {% else %}
+              <a href="{{ child.url or '#' }}">{{ child.title }}</a>
+            {% endif %}
           {% endfor %}
         </div>
       </div>

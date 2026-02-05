@@ -129,6 +129,7 @@ def init_db() -> None:
           section_id INTEGER,
           published_date TEXT NOT NULL,
           event_date TEXT,
+          external_link TEXT,
           created_at TEXT NOT NULL,
           updated_at TEXT NOT NULL,
           FOREIGN KEY(section_id) REFERENCES menu_items(id)
@@ -482,6 +483,7 @@ def index():
         SELECT articles.*, menu_items.title AS section_title
         FROM articles
         LEFT JOIN menu_items ON menu_items.id = articles.section_id
+        WHERE articles.section_id IS NULL
         ORDER BY articles.published_date DESC
         LIMIT 3
         """

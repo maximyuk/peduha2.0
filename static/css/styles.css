@@ -273,10 +273,28 @@ p {
   z-index: 20;
 }
 
+/* Вложені меню (dropdown в dropdown) - розгортаються зправа */
+.submenu-level-1 .submenu {
+  top: 0;
+  left: calc(100% + 0.6rem);
+  transform: translateX(-8px);
+}
+
+.submenu-level-1 .submenu-toggle {
+  display: inline-block !important;
+}
+
+.submenu-level-1:hover > .submenu,
+.submenu-level-1:focus-within > .submenu,
+.submenu-level-1.is-open > .submenu {
+  transform: translateX(0);
+}
+
 .submenu a {
   padding: 0.55rem 0.7rem;
   border-radius: 10px;
   font-weight: 500;
+  display: block;
 }
 
 .submenu a:hover,

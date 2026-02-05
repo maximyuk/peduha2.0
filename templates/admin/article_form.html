@@ -66,6 +66,17 @@
               value="{{ article.event_date if article else '' }}"
             />
           </label>
+          <label class="form-field">
+            Зовнішнє посилання (замість статті або як кнопка)
+            <input
+              class="input"
+              name="external_link"
+              type="url"
+              placeholder="https://example.com"
+              value="{{ article.external_link if article else '' }}"
+            />
+            <small>Якщо заповнено, статія буде посиланням на цей сайт</small>
+          </label>
           <button class="btn primary" type="submit">{{ 'Зберегти' if article else 'Створити' }}</button>
         </form>
       </div>

@@ -29,11 +29,19 @@
               {% endif %}
             </div>
             <h3>
-              <a href="{{ url_for('article_detail', article_id=article.id) }}">{{ article.title }}</a>
+              {% if article.external_link %}
+                <a href="{{ article.external_link }}" target="_blank">{{ article.title }}</a>
+              {% else %}
+                <a href="{{ url_for('article_detail', article_id=article.id) }}">{{ article.title }}</a>
+              {% endif %}
             </h3>
             <p>{{ article.summary }}</p>
             <div class="article-footer">
-              <a class="link" href="{{ url_for('article_detail', article_id=article.id) }}">Читати</a>
+              {% if article.external_link %}
+                <a class="link" href="{{ article.external_link }}" target="_blank">Перейти</a>
+              {% else %}
+                <a class="link" href="{{ url_for('article_detail', article_id=article.id) }}">Читати</a>
+              {% endif %}
             </div>
           </article>
         {% else %}
