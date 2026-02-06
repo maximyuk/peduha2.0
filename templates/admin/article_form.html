@@ -14,19 +14,49 @@
       </div>
 
       <div class="admin-card">
-        <form method="post" class="form-grid">
+        <form method="post" enctype="multipart/form-data" class="form-grid">
           <label class="form-field">
             Назва
             <input class="input" name="title" type="text" value="{{ article.title if article else '' }}" required />
           </label>
           <label class="form-field">
             Короткий опис
-            <textarea class="textarea" name="summary" rows="3" required>{{ article.summary if article else '' }}</textarea>
+            <textarea class="textarea" name="summary" rows="3">{{ article.summary if article else '' }}</textarea>
           </label>
-          <label class="form-field">
-            Повний текст
-            <textarea class="textarea" name="content" rows="6" required>{{ article.content if article else '' }}</textarea>
-          </label>
+          <div class="form-field">
+            <div>Повний текст</div>
+            <div class="editor-toolbar" role="toolbar" aria-label="Форматування тексту">
+              <button class="btn outline small" type="button" data-cmd="bold"><b>B</b></button>
+              <button class="btn outline small" type="button" data-cmd="italic"><i>I</i></button>
+              <button class="btn outline small" type="button" data-cmd="underline"><u>U</u></button>
+              <select class="select editor-select" data-cmd="fontName" aria-label="Шрифт">
+                <option value="Arial">Arial</option>
+                <option value="Times New Roman">Times New Roman</option>
+                <option value="Verdana">Verdana</option>
+                <option value="Tahoma">Tahoma</option>
+                <option value="Georgia">Georgia</option>
+              </select>
+              <select class="select editor-select" data-cmd="fontSize" aria-label="Розмір">
+                <option value="2">Малий</option>
+                <option value="3" selected>Нормальний</option>
+                <option value="4">Середній</option>
+                <option value="5">Великий</option>
+                <option value="6">Дуже великий</option>
+              </select>
+              <button class="btn outline small" type="button" id="insert-pdf-btn">Додати PDF</button>
+              <input id="pdf-input" class="file-input" type="file" accept="application/pdf" />
+            </div>
+            <div
+              id="content-editor"
+              class="rich-editor"
+              contenteditable="true"
+              spellcheck="true"
+              aria-label="Повний текст"
+              data-initial='{{ (article.content if article else "")|tojson }}'
+            ></div>
+            <textarea class="textarea" id="content-textarea" name="content" rows="6" style="display:none;"></textarea>
+            <small>Порада: форматування збережеться. PDF додається як посилання в текст.</small>
+          </div>
           <label class="form-field">
             Категорія
             <select class="select" name="category">
@@ -77,9 +107,339 @@
             />
             <small>Якщо заповнено, статія буде посиланням на цей сайт</small>
           </label>
+          
+          <!-- Featured Image Upload -->
+          <div class="form-field">
+            <div>Головне зображення</div>
+            <input type="hidden" name="remove_featured_image" id="remove-featured-image" value="0" />
+            <div class="file-picker">
+              <input
+                id="featured-image-input"
+                class="input file-input"
+                type="file"
+                name="featured_image"
+                accept="image/*"
+                onchange="handleFeaturedImageChange(event)"
+              />
+              <button class="btn outline" type="button" onclick="openFilePicker('featured-image-input')">
+                Завантажити фото
+              </button>
+              <button class="btn outline danger small" type="button" onclick="clearFeaturedSelection()">
+                Прибрати вибір
+              </button>
+              {% if article and article.featured_image %}
+                <button class="btn outline danger small" type="button" onclick="removeCurrentFeaturedImage()">
+                  Видалити поточне
+                </button>
+              {% endif %}
+              <span id="featured-image-name" class="file-name" aria-live="polite"></span>
+            </div>
+            <div
+              id="featured-preview"
+              style="margin-top: 10px;"
+              data-existing-url="{{ uploads_url(article.featured_image) if article and article.featured_image else '' }}"
+            >
+              {% if article and article.featured_image %}
+                <img src="{{ uploads_url(article.featured_image) }}" style="max-width: 260px; max-height: 180px; object-fit: contain; background: #f8fafc; border-radius: 8px;" alt="Preview">
+                <br><small>Поточне зображення</small>
+              {% endif %}
+            </div>
+          </div>
+          
+          <!-- Gallery Images Upload -->
+          <div class="form-field">
+            <div>Галерея зображень</div>
+            <input type="hidden" name="remove_gallery_images" id="remove-gallery-images" value="[]" />
+            <div class="file-picker">
+              <input
+                id="gallery-images-input"
+                class="input file-input"
+                type="file"
+                name="gallery_images"
+                accept="image/*"
+                multiple
+                onchange="handleGalleryImagesChange(event)"
+              />
+              <button class="btn outline" type="button" onclick="openFilePicker('gallery-images-input')">
+                Додати фото
+              </button>
+              <button class="btn outline danger small" type="button" onclick="clearGallerySelection()">
+                Очистити вибір
+              </button>
+              <span id="gallery-images-name" class="file-name" aria-live="polite"></span>
+            </div>
+            <div id="gallery-preview" style="margin-top: 10px;">
+              {% if article and article.image_gallery %}
+                {% set gallery = article.image_gallery|from_json if article.image_gallery else [] %}
+                <div class="gallery-grid" id="existing-gallery">
+                  {% for img_path in gallery %}
+                    <div class="gallery-item" data-gallery-path="{{ img_path }}">
+                      <img src="{{ uploads_url(img_path) }}" style="max-width: 100px; max-height: 100px; object-fit: cover;" alt="Gallery {{ loop.index }}">
+                      <button class="gallery-remove" type="button" onclick="markGalleryImageForRemoval(this)">×</button>
+                    </div>
+                  {% endfor %}
+                </div>
+                <br><small>Поточна галерея</small>
+              {% endif %}
+            </div>
+            <div id="gallery-new-preview" style="margin-top: 10px;"></div>
+          </div>
+          
           <button class="btn primary" type="submit">{{ 'Зберегти' if article else 'Створити' }}</button>
         </form>
       </div>
     </div>
   </section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function openFilePicker(inputId) {
+  const input = document.getElementById(inputId);
+  if (input) input.click();
+}
+
+function initRichEditor() {
+  const editor = document.getElementById('content-editor');
+  const textarea = document.getElementById('content-textarea');
+  const form = editor ? editor.closest('form') : null;
+  if (!editor || !textarea || !form) return;
+
+  const initial = editor.dataset.initial ? JSON.parse(editor.dataset.initial) : '';
+  if (initial) {
+    editor.innerHTML = initial;
+  } else {
+    editor.innerHTML = '';
+  }
+
+  function sync() {
+    textarea.value = editor.innerHTML.trim();
+  }
+
+  form.addEventListener('submit', (e) => {
+    sync();
+    if (!textarea.value) {
+      e.preventDefault();
+      alert('Заповніть повний текст статті.');
+      editor.focus();
+    }
+  });
+
+  editor.addEventListener('input', sync);
+  sync();
+
+  // Toolbar handling
+  document.querySelectorAll('.editor-toolbar button[data-cmd]').forEach((el) => {
+    el.addEventListener('click', () => {
+      const cmd = el.getAttribute('data-cmd');
+      if (!cmd) return;
+      document.execCommand(cmd, false, null);
+      editor.focus();
+      sync();
+    });
+  });
+  document.querySelectorAll('.editor-toolbar select[data-cmd]').forEach((el) => {
+    el.addEventListener('change', () => {
+      const cmd = el.getAttribute('data-cmd');
+      const value = el.value;
+      document.execCommand(cmd, false, value);
+      editor.focus();
+      sync();
+    });
+  });
+
+  // PDF insertion
+  const pdfBtn = document.getElementById('insert-pdf-btn');
+  const pdfInput = document.getElementById('pdf-input');
+  if (pdfBtn && pdfInput) {
+    pdfBtn.addEventListener('click', () => pdfInput.click());
+    pdfInput.addEventListener('change', async () => {
+      const file = pdfInput.files && pdfInput.files[0];
+      if (!file) return;
+
+      try {
+        const formData = new FormData();
+        formData.append('pdf', file);
+        const res = await fetch('/admin/uploads/pdf', {
+          method: 'POST',
+          body: formData,
+          credentials: 'same-origin',
+        });
+        const data = await res.json();
+        if (!res.ok || !data.url) {
+          throw new Error(data.error || 'Upload failed');
+        }
+
+        const safeName = (data.name || file.name || 'PDF').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const html = `<a href="${data.url}" target="_blank" rel="noopener">📄 ${safeName}</a>`;
+        editor.focus();
+        document.execCommand('insertHTML', false, html);
+        sync();
+      } catch (err) {
+        alert('Не вдалося завантажити PDF. ' + (err && err.message ? err.message : ''));
+      } finally {
+        pdfInput.value = '';
+      }
+    });
+  }
+}
+
+function renderSelectedFiles(files, targetId) {
+  const target = document.getElementById(targetId);
+  if (!target) return;
+  if (!files || files.length === 0) {
+    target.textContent = '';
+    return;
+  }
+  if (files.length === 1) {
+    target.textContent = files[0].name;
+    return;
+  }
+  target.textContent = `${files.length} файлів`;
+}
+
+function clearFileInput(inputId) {
+  const input = document.getElementById(inputId);
+  if (input) input.value = '';
+}
+
+function restoreExistingFeaturedPreview() {
+  const preview = document.getElementById('featured-preview');
+  const removeFlag = document.getElementById('remove-featured-image');
+  if (!preview) return;
+
+  const existingUrl = preview.dataset.existingUrl || '';
+  const isRemoved = removeFlag && removeFlag.value === '1';
+
+  if (existingUrl && !isRemoved) {
+    preview.innerHTML = `
+      <img src="${existingUrl}" style="max-width: 260px; max-height: 180px; object-fit: contain; background: #f8fafc; border-radius: 8px;" alt="Preview">
+      <br><small>Поточне зображення</small>
+    `;
+    return;
+  }
+  preview.innerHTML = '';
+}
+
+function clearFeaturedSelection() {
+  clearFileInput('featured-image-input');
+  renderSelectedFiles([], 'featured-image-name');
+  const removeFlag = document.getElementById('remove-featured-image');
+  if (removeFlag) removeFlag.value = '0';
+  restoreExistingFeaturedPreview();
+}
+
+function removeCurrentFeaturedImage() {
+  const removeFlag = document.getElementById('remove-featured-image');
+  if (removeFlag) removeFlag.value = '1';
+  clearFileInput('featured-image-input');
+  renderSelectedFiles([], 'featured-image-name');
+  const preview = document.getElementById('featured-preview');
+  if (preview) {
+    preview.innerHTML = '<small>Зображення буде видалено після збереження.</small>';
+  }
+}
+
+function handleFeaturedImageChange(event) {
+  const removeFlag = document.getElementById('remove-featured-image');
+  if (removeFlag) removeFlag.value = '0';
+  renderSelectedFiles(event.target.files, 'featured-image-name');
+  previewFeaturedImage(event);
+}
+
+function handleGalleryImagesChange(event) {
+  renderSelectedFiles(event.target.files, 'gallery-images-name');
+  previewGalleryImages(event);
+}
+
+function previewFeaturedImage(event) {
+  const file = event.target.files[0];
+  const preview = document.getElementById('featured-preview');
+  
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      preview.innerHTML = `
+        <img src="${e.target.result}" style="max-width: 260px; max-height: 180px; object-fit: contain; background: #f8fafc; border-radius: 8px;" alt="Preview">
+        <br><small>Нове зображення</small>
+      `;
+    }
+    reader.readAsDataURL(file);
+  } else {
+    restoreExistingFeaturedPreview();
+  }
+}
+
+function previewGalleryImages(event) {
+  const preview = document.getElementById('gallery-new-preview');
+  if (!preview) return;
+
+  const files = event.target.files ? Array.from(event.target.files) : [];
+  preview.innerHTML = '';
+
+  if (files.length === 0) return;
+
+  files.forEach((file, index) => {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const img = document.createElement('img');
+      img.src = e.target.result;
+      img.style.maxWidth = '100px';
+      img.style.maxHeight = '100px';
+      img.style.objectFit = 'cover';
+      img.style.margin = '5px';
+      img.alt = `Preview ${index + 1}`;
+      preview.appendChild(img);
+    };
+    reader.readAsDataURL(file);
+  });
+
+  const br = document.createElement('br');
+  const small = document.createElement('small');
+  small.textContent = 'Нові зображення галереї';
+  preview.appendChild(br);
+  preview.appendChild(small);
+}
+
+function clearGallerySelection() {
+  clearFileInput('gallery-images-input');
+  renderSelectedFiles([], 'gallery-images-name');
+  const newPreview = document.getElementById('gallery-new-preview');
+  if (newPreview) newPreview.innerHTML = '';
+}
+
+function getRemoveGalleryList() {
+  const input = document.getElementById('remove-gallery-images');
+  if (!input) return [];
+  try {
+    const parsed = JSON.parse(input.value || '[]');
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function setRemoveGalleryList(list) {
+  const input = document.getElementById('remove-gallery-images');
+  if (!input) return;
+  input.value = JSON.stringify(list);
+}
+
+function markGalleryImageForRemoval(button) {
+  const item = button.closest('[data-gallery-path]');
+  if (!item) return;
+  const path = item.getAttribute('data-gallery-path');
+  if (!path) return;
+
+  const list = getRemoveGalleryList();
+  if (!list.includes(path)) list.push(path);
+  setRemoveGalleryList(list);
+
+  item.remove();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  initRichEditor();
+});
+</script>
 {% endblock %}

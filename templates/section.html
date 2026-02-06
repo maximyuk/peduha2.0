@@ -21,6 +21,24 @@
       <div class="article-list">
         {% for article in articles %}
           <article class="article-card">
+            {% set thumb = article.featured_image %}
+            {% if not thumb and article.image_gallery %}
+              {% set gallery = article.image_gallery|from_json if article.image_gallery else [] %}
+              {% if gallery %}
+                {% set thumb = gallery[0] %}
+              {% endif %}
+            {% endif %}
+            {% if thumb %}
+              {% if article.external_link %}
+                <a class="article-thumb" href="{{ article.external_link }}" target="_blank">
+                  <img src="{{ uploads_url(thumb) }}" alt="{{ article.title }}">
+                </a>
+              {% else %}
+                <a class="article-thumb" href="{{ url_for('article_detail', article_id=article.id) }}">
+                  <img src="{{ uploads_url(thumb) }}" alt="{{ article.title }}">
+                </a>
+              {% endif %}
+            {% endif %}
             <div class="article-meta">
               <span class="badge">{{ article.category }}</span>
               <span class="muted">Публікація: {{ article.published_date }}</span>

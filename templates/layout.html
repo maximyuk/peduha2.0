@@ -161,11 +161,12 @@
       </div>
     </footer>
 
-<script>
+    <script>
       // Pass menu data to JavaScript
       window.menuItems = {{ menu_items|tojson|safe }};
       window.activeTitle = {{ active_title|tojson|safe }};
     </script>
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block scripts %}{% endblock %}
   </body>
 </html>

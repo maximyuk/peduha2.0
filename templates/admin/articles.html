@@ -17,6 +17,7 @@
         <table class="table">
           <thead>
             <tr>
+              <th>Зображення</th>
               <th>Назва</th>
               <th>Категорія</th>
               <th>Розділ</th>
@@ -28,6 +29,24 @@
           <tbody>
             {% for article in articles %}
               <tr>
+                <td>
+                  {% if article.featured_image %}
+                    <img src="{{ uploads_url(article.featured_image) }}" 
+                         style="width: 60px; height: 45px; object-fit: cover; border-radius: 4px;" 
+                         alt="{{ article.title }}">
+                  {% elif article.image_gallery %}
+                    {% set gallery = article.image_gallery|from_json if article.image_gallery else [] %}
+                    {% if gallery %}
+                      <img src="{{ uploads_url(gallery[0]) }}" 
+                           style="width: 60px; height: 45px; object-fit: cover; border-radius: 4px;" 
+                           alt="{{ article.title }}">
+                    {% else %}
+                      <div style="width: 60px; height: 45px; background: #f0f0f0; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #999; font-size: 10px;">Немає</div>
+                    {% endif %}
+                  {% else %}
+                    <div style="width: 60px; height: 45px; background: #f0f0f0; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #999; font-size: 10px;">Немає</div>
+                  {% endif %}
+                </td>
                 <td>{{ article.title }}</td>
                 <td><span class="badge">{{ article.category }}</span></td>
                 <td>{{ article.section_title or '-' }}</td>
@@ -42,7 +61,7 @@
               </tr>
             {% else %}
               <tr>
-                <td colspan="6">Немає статей.</td>
+                <td colspan="7">Немає статей.</td>
               </tr>
             {% endfor %}
           </tbody>

@@ -3,22 +3,30 @@ from __future__ import annotations
 
 import os
 import sqlite3
+import html
 from datetime import datetime
 from functools import wraps
 from typing import Dict, List, Optional
+from html.parser import HTMLParser
+from urllib.parse import urlparse
 
 from flask import (
-    Flask,
-    abort,
-    flash,
-    g,
-    redirect,
-    render_template,
-    request,
-    send_from_directory,
-    session,
-    url_for,
+  Flask,
+  abort,
+  flash,
+  jsonify,
+  g,
+  redirect,
+  render_template,
+  request,
+  send_from_directory,
+  session,
+  url_for,
 )
+from werkzeug.utils import secure_filename
+from PIL import Image
+import json
+import uuid
 from werkzeug.security import check_password_hash, generate_password_hash
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -70,6 +78,183 @@ UKR_SLUG_MAP = {
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "change-this-secret")
+
+# File upload configuration
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+UPLOAD_FOLDER = 'static/uploads'
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+
+_ALLOWED_HTML_TAGS = [
+    "a",
+    "b",
+    "br",
+    "div",
+    "em",
+    "font",
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "i",
+    "li",
+    "ol",
+    "p",
+    "span",
+    "strong",
+    "u",
+    "ul",
+]
+
+def _is_safe_href(href: str) -> bool:
+    href = href.strip()
+    if not href:
+        return False
+    if href.startswith("/"):
+        return True
+    parsed = urlparse(href)
+    return parsed.scheme in {"http", "https", "mailto"}
+
+
+class _SafeHTML(HTMLParser):
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self._out: list[str] = []
+
+    def handle_starttag(self, tag: str, attrs):
+        tag = tag.lower()
+        if tag not in _ALLOWED_HTML_TAGS:
+            return
+
+        safe_attrs: list[tuple[str, str]] = []
+        attrs_dict = {k.lower(): (v if v is not None else "") for k, v in attrs}
+
+        if tag == "a":
+            href = attrs_dict.get("href", "")
+            if _is_safe_href(href):
+                safe_attrs.append(("href", href))
+                safe_attrs.append(("target", "_blank"))
+                safe_attrs.append(("rel", "noopener noreferrer"))
+        elif tag == "font":
+            face = attrs_dict.get("face", "").strip()
+            size = attrs_dict.get("size", "").strip()
+            color = attrs_dict.get("color", "").strip()
+            if face and len(face) <= 50:
+                safe_attrs.append(("face", face))
+            if size.isdigit() and 1 <= int(size) <= 7:
+                safe_attrs.append(("size", size))
+            if color and len(color) <= 32:
+                safe_attrs.append(("color", color))
+
+        if safe_attrs:
+            attrs_html = " ".join(f'{k}="{html.escape(v, quote=True)}"' for k, v in safe_attrs)
+            self._out.append(f"<{tag} {attrs_html}>")
+        else:
+            self._out.append(f"<{tag}>")
+
+    def handle_endtag(self, tag: str):
+        tag = tag.lower()
+        if tag in _ALLOWED_HTML_TAGS and tag != "br":
+            self._out.append(f"</{tag}>")
+
+    def handle_startendtag(self, tag: str, attrs):
+        tag = tag.lower()
+        if tag == "br":
+            self._out.append("<br>")
+
+    def handle_data(self, data: str):
+        self._out.append(html.escape(data))
+
+    def get_html(self) -> str:
+        return "".join(self._out)
+
+
+def sanitize_html(value: str | None) -> str:
+    if not value:
+        return ""
+    # If older versions stored escaped HTML, restore it once.
+    if "&lt;" in value and "<" not in value:
+        value = html.unescape(value)
+    parser = _SafeHTML()
+    parser.feed(value)
+    parser.close()
+    return parser.get_html()
+
+
+@app.template_filter("sanitize_html")
+def sanitize_html_filter(value: str | None) -> str:
+    return sanitize_html(value)
+
+
+def _upload_folder_posix() -> str:
+    return UPLOAD_FOLDER.replace("\\", "/").strip("/")
+
+
+def normalize_upload_ref(path: str | None) -> str | None:
+    """
+    Normalize stored upload references to a URL-safe relative path under UPLOAD_FOLDER.
+
+    Accepts values like:
+    - articles/featured/file.jpg
+    - static/uploads/articles/featured/file.jpg
+    - static\\uploads\\articles\\featured\\file.jpg
+    """
+    if not path:
+        return None
+    posix = str(path).replace("\\", "/")
+    marker = _upload_folder_posix() + "/"
+    if posix.startswith(marker):
+        return posix[len(marker):].lstrip("/")
+    if marker in posix:
+        return posix.split(marker, 1)[1].lstrip("/")
+    return posix.lstrip("/")
+
+
+def upload_fs_path(path: str | None) -> str | None:
+    if not path:
+        return None
+    if os.path.isabs(path):
+        return path
+    rel = normalize_upload_ref(path) or ""
+    return os.path.join(BASE_DIR, UPLOAD_FOLDER, *rel.split("/"))
+
+
+def uploads_url(path: str | None) -> str:
+    rel = normalize_upload_ref(path)
+    if not rel:
+        return ""
+    return url_for("uploaded_files", filename=rel)
+
+
+app.jinja_env.globals["uploads_url"] = uploads_url
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+def allowed_pdf(filename: str) -> bool:
+    return "." in filename and filename.rsplit(".", 1)[1].lower() == "pdf"
+
+def resize_image(image_path, max_width=1200, max_height=800):
+    """Resize image to fit within specified dimensions while maintaining aspect ratio"""
+    try:
+        with Image.open(image_path) as img:
+            img.thumbnail((max_width, max_height), Image.Resampling.LANCZOS)
+            img.save(image_path, optimize=True, quality=85)
+        return True
+    except Exception as e:
+        print(f"Error resizing image: {e}")
+        return False
+
+@app.template_filter('from_json')
+def from_json(value):
+    """Parse JSON string to Python object"""
+    if value:
+        try:
+            return json.loads(value)
+        except (ValueError, TypeError):
+            return []
+    return []
 
 
 def get_db() -> sqlite3.Connection:
@@ -130,12 +315,24 @@ def init_db() -> None:
           published_date TEXT NOT NULL,
           event_date TEXT,
           external_link TEXT,
+          featured_image TEXT,
+          image_gallery TEXT,
           created_at TEXT NOT NULL,
           updated_at TEXT NOT NULL,
           FOREIGN KEY(section_id) REFERENCES menu_items(id)
         )
         """
     )
+
+    # Add new columns if they don't exist (for existing databases)
+    cursor.execute("PRAGMA table_info(articles)")
+    columns = [column[1] for column in cursor.fetchall()]
+    
+    if 'featured_image' not in columns:
+        cursor.execute("ALTER TABLE articles ADD COLUMN featured_image TEXT")
+    
+    if 'image_gallery' not in columns:
+        cursor.execute("ALTER TABLE articles ADD COLUMN image_gallery TEXT")
 
     cursor.execute("SELECT COUNT(*) FROM users")
     if cursor.fetchone()[0] == 0:
@@ -621,6 +818,33 @@ def legacy_images(filename: str):
     return send_from_directory(images_dir, filename)
 
 
+@app.route("/uploads/<path:filename>")
+def uploaded_files(filename: str):
+    uploads_dir = os.path.join(BASE_DIR, UPLOAD_FOLDER)
+    return send_from_directory(uploads_dir, filename)
+
+
+@app.route("/admin/uploads/pdf", methods=["POST"])
+@role_required("owner", "admin", "editor")
+def admin_upload_pdf():
+    file = request.files.get("pdf")
+    if not file or not file.filename:
+        return jsonify({"error": "PDF file missing"}), 400
+    if not allowed_pdf(file.filename):
+        return jsonify({"error": "Only .pdf allowed"}), 400
+
+    filename = secure_filename(file.filename)
+    unique_filename = f"{uuid.uuid4().hex}_{filename}"
+    rel_path = f"articles/pdfs/{unique_filename}"
+    upload_path = upload_fs_path(rel_path)
+    if not upload_path:
+        return jsonify({"error": "Upload path error"}), 500
+
+    os.makedirs(os.path.dirname(upload_path), exist_ok=True)
+    file.save(upload_path)
+    return jsonify({"url": uploads_url(rel_path), "name": filename, "path": rel_path})
+
+
 @app.route("/logout")
 def logout():
     session.clear()
@@ -832,14 +1056,45 @@ def admin_article_new():
         event_date = request.form.get("event_date") or None
         external_link = request.form.get("external_link", "").strip() or None
 
-        if not title or not summary or not content:
-            flash("Заповніть назву, опис та текст статті.", "error")
+        # Handle file uploads
+        featured_image = None
+        image_gallery = []
+        
+        # Handle featured image
+        if 'featured_image' in request.files:
+            file = request.files['featured_image']
+            if file and file.filename and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                unique_filename = f"{uuid.uuid4().hex}_{filename}"
+                rel_path = f"articles/featured/{unique_filename}"
+                upload_path = upload_fs_path(rel_path)
+                os.makedirs(os.path.dirname(upload_path), exist_ok=True)
+                file.save(upload_path)
+                resize_image(upload_path)
+                featured_image = rel_path
+
+        # Handle gallery images
+        if 'gallery_images' in request.files:
+            files = request.files.getlist('gallery_images')
+            for file in files:
+                if file and file.filename and allowed_file(file.filename):
+                    filename = secure_filename(file.filename)
+                    unique_filename = f"{uuid.uuid4().hex}_{filename}"
+                    rel_path = f"articles/gallery/{unique_filename}"
+                    upload_path = upload_fs_path(rel_path)
+                    os.makedirs(os.path.dirname(upload_path), exist_ok=True)
+                    file.save(upload_path)
+                    resize_image(upload_path)
+                    image_gallery.append(rel_path)
+
+        if not title or not content:
+            flash("Заповніть назву та текст статті.", "error")
         else:
             execute_db(
                 """
                 INSERT INTO articles
-                (title, summary, content, category, section_id, published_date, event_date, external_link, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (title, summary, content, category, section_id, published_date, event_date, external_link, featured_image, image_gallery, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     title,
@@ -850,6 +1105,8 @@ def admin_article_new():
                     published_date,
                     event_date,
                     external_link,
+                    featured_image,
+                    json.dumps(image_gallery) if image_gallery else None,
                     datetime.utcnow().isoformat(),
                     datetime.utcnow().isoformat(),
                 ),
@@ -884,14 +1141,86 @@ def admin_article_edit(article_id: int):
         event_date = request.form.get("event_date") or None
         external_link = request.form.get("external_link", "").strip() or None
 
-        if not title or not summary or not content:
-            flash("Заповніть назву, опис та текст статті.", "error")
+        # Handle file uploads
+        featured_image_raw = article["featured_image"]
+        featured_image = normalize_upload_ref(featured_image_raw)
+        image_gallery_raw = json.loads(article["image_gallery"]) if article["image_gallery"] else []
+        image_gallery = [normalize_upload_ref(p) for p in image_gallery_raw if normalize_upload_ref(p)]
+
+        remove_featured_image = request.form.get("remove_featured_image") == "1"
+        remove_gallery_images_raw = request.form.get("remove_gallery_images", "[]")
+        try:
+            remove_gallery_images = json.loads(remove_gallery_images_raw) if remove_gallery_images_raw else []
+            if not isinstance(remove_gallery_images, list):
+                remove_gallery_images = []
+        except (ValueError, TypeError):
+            remove_gallery_images = []
+        remove_gallery_images_norm = [normalize_upload_ref(p) for p in remove_gallery_images if normalize_upload_ref(p)]
+        remove_gallery_images_norm_set = set(remove_gallery_images_norm)
+        
+        # Remove featured image if requested
+        if remove_featured_image and featured_image_raw:
+            old_path = upload_fs_path(featured_image_raw)
+            if old_path and os.path.exists(old_path):
+                os.remove(old_path)
+            featured_image = None
+            featured_image_raw = None
+
+        # Remove gallery images if requested
+        if remove_gallery_images_norm_set:
+            remaining = []
+            for p in image_gallery:
+                if p in remove_gallery_images_norm_set:
+                    old_path = upload_fs_path(p)
+                    if old_path and os.path.exists(old_path):
+                        os.remove(old_path)
+                else:
+                    remaining.append(p)
+            image_gallery = remaining
+        
+        # Handle featured image update
+        if 'featured_image' in request.files:
+            file = request.files['featured_image']
+            if file and file.filename and allowed_file(file.filename):
+                # Delete old image if exists
+                if featured_image_raw:
+                    old_path = upload_fs_path(featured_image_raw)
+                    if old_path and os.path.exists(old_path):
+                        os.remove(old_path)
+                
+                filename = secure_filename(file.filename)
+                unique_filename = f"{uuid.uuid4().hex}_{filename}"
+                rel_path = f"articles/featured/{unique_filename}"
+                upload_path = upload_fs_path(rel_path)
+                os.makedirs(os.path.dirname(upload_path), exist_ok=True)
+                file.save(upload_path)
+                resize_image(upload_path)
+                featured_image = rel_path
+                featured_image_raw = rel_path
+
+        # Handle gallery images update
+        if 'gallery_images' in request.files:
+            files = request.files.getlist('gallery_images')
+            for file in files:
+                if file and file.filename and allowed_file(file.filename):
+                    filename = secure_filename(file.filename)
+                    unique_filename = f"{uuid.uuid4().hex}_{filename}"
+                    rel_path = f"articles/gallery/{unique_filename}"
+                    upload_path = upload_fs_path(rel_path)
+                    os.makedirs(os.path.dirname(upload_path), exist_ok=True)
+                    file.save(upload_path)
+                    resize_image(upload_path)
+                    image_gallery.append(rel_path)
+
+        if not title or not content:
+            flash("Заповніть назву та текст статті.", "error")
         else:
             execute_db(
                 """
                 UPDATE articles
                 SET title = ?, summary = ?, content = ?, category = ?, section_id = ?,
-                    published_date = ?, event_date = ?, external_link = ?, updated_at = ?
+                    published_date = ?, event_date = ?, external_link = ?, featured_image = ?, 
+                    image_gallery = ?, updated_at = ?
                 WHERE id = ?
                 """,
                 (
@@ -903,6 +1232,8 @@ def admin_article_edit(article_id: int):
                     published_date,
                     event_date,
                     external_link,
+                    featured_image,
+                    json.dumps(image_gallery) if image_gallery else None,
                     datetime.utcnow().isoformat(),
                     article_id,
                 ),
