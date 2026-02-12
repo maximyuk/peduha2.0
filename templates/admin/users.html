@@ -14,10 +14,11 @@
       </div>
 
       <div class="table-wrap">
-        <table class="table">
+        <table class="table admin-table">
           <thead>
             <tr>
               <th>Логін</th>
+              <th>ПІБ</th>
               <th>Роль</th>
               <th>Створено</th>
               <th></th>
@@ -26,10 +27,13 @@
           <tbody>
             {% for user in users %}
               <tr>
-                <td>{{ user.username }}</td>
-                <td><span class="badge">{{ user.role }}</span></td>
-                <td>{{ user.created_at[:10] }}</td>
-                <td class="table-actions">
+                <td data-label="Логін">
+                  <a class="link" href="{{ url_for('user_profile', username=user.username) }}">{{ user.username }}</a>
+                </td>
+                <td data-label="ПІБ">{{ ((user.last_name or '') ~ ' ' ~ (user.first_name or '') ~ ' ' ~ (user.middle_name or ''))|trim or '-' }}</td>
+                <td data-label="Роль"><span class="badge">{{ user.role }}</span></td>
+                <td data-label="Створено">{{ user.created_at[:10] }}</td>
+                <td class="table-actions" data-label="Дії">
                   <a class="link" href="{{ url_for('admin_user_edit', user_id=user.id) }}">Редагувати</a>
                   <form method="post" action="{{ url_for('admin_user_delete', user_id=user.id) }}">
                     <button class="link danger" type="submit">Видалити</button>
@@ -37,8 +41,8 @@
                 </td>
               </tr>
             {% else %}
-              <tr>
-                <td colspan="4">Немає користувачів.</td>
+              <tr class="table-empty">
+                <td colspan="5">Немає користувачів.</td>
               </tr>
             {% endfor %}
           </tbody>

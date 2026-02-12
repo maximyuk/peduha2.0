@@ -1,0 +1,82 @@
+{% extends "layout.html" %}
+
+{% block title %}Заявка на курси — ВПФК{% endblock %}
+
+{% block content %}
+  <section class="hero hero-inner">
+    <div class="hero-overlay"></div>
+    <div class="container hero-content">
+      <div class="hero-badge">Форма заявки</div>
+      <h1>Запис на підготовчі курси</h1>
+      <p>Заповніть форму, і приймальна комісія зв'яжеться з вами.</p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container" style="max-width: 860px;">
+      <div class="admin-card">
+        <form method="post" class="form-grid">
+          <label class="form-field">
+            ПІБ
+            <input
+              class="input"
+              name="full_name"
+              type="text"
+              value="{{ form_data.full_name }}"
+              required
+            />
+          </label>
+
+          <label class="form-field">
+            Де навчалась (заклад)
+            <input
+              class="input"
+              name="previous_school"
+              type="text"
+              value="{{ form_data.previous_school }}"
+              required
+            />
+          </label>
+
+          <label class="form-field">
+            Скільки років навчалась
+            <input
+              class="input"
+              name="study_years"
+              type="text"
+              value="{{ form_data.study_years }}"
+              placeholder="Наприклад: 9 або 11"
+              required
+            />
+          </label>
+
+          <label class="form-field">
+            Номер телефона
+            <input
+              class="input"
+              name="phone"
+              type="tel"
+              value="{{ form_data.phone }}"
+              placeholder="+380..."
+              required
+            />
+          </label>
+
+          <label class="form-field">
+            Юзер Telegram
+            <input
+              class="input"
+              name="telegram_username"
+              type="text"
+              value="{{ form_data.telegram_username }}"
+              placeholder="@username"
+              required
+            />
+          </label>
+
+          <button class="btn primary" type="submit">Надіслати заявку</button>
+        </form>
+      </div>
+    </div>
+  </section>
+{% endblock %}

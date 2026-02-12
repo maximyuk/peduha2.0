@@ -4,6 +4,7 @@ from __future__ import annotations
 import os
 import sqlite3
 import html
+import re
 from datetime import datetime
 from functools import wraps
 from typing import Dict, List, Optional
@@ -37,6 +38,13 @@ DEFAULT_OWNER_USERNAME = "owner"
 DEFAULT_OWNER_PASSWORD = "owner1234"
 
 ARTICLE_CATEGORIES = ["Оголошення", "Подія", "Новина", "Інше"]
+COURSE_APPLICATION_STATUSES = [
+    "Нова",
+    "Зателефоновано",
+    "В роботі",
+    "Зараховано",
+    "Відхилено",
+]
 UKR_SLUG_MAP = {
     "а": "a",
     "б": "b",
@@ -185,6 +193,15 @@ def sanitize_html_filter(value: str | None) -> str:
     return sanitize_html(value)
 
 
+@app.template_filter("clean_text")
+def clean_text_filter(value):
+    if value is None:
+        return ""
+    if isinstance(value, str) and value.strip().lower() == "none":
+        return ""
+    return value
+
+
 def _upload_folder_posix() -> str:
     return UPLOAD_FOLDER.replace("\\", "/").strip("/")
 
@@ -234,6 +251,86 @@ def allowed_file(filename):
 
 def allowed_pdf(filename: str) -> bool:
     return "." in filename and filename.rsplit(".", 1)[1].lower() == "pdf"
+
+
+def normalize_hex_color(value: str | None, default: str) -> str:
+    if not value:
+        return default
+    candidate = value.strip()
+    if re.fullmatch(r"#[0-9a-fA-F]{6}", candidate):
+        return candidate.lower()
+    if re.fullmatch(r"#[0-9a-fA-F]{3}", candidate):
+        return candidate.lower()
+    return default
+
+
+def normalize_button_url(value: str | None) -> str:
+    if not value:
+        return "#"
+    candidate = value.strip()
+    if candidate.startswith(("/", "#")):
+        return candidate
+    parsed = urlparse(candidate)
+    if parsed.scheme in {"http", "https", "mailto", "tel"}:
+        return candidate
+    return "#"
+
+
+def normalize_optional_text(value: str | None) -> str | None:
+    if value is None:
+        return None
+    cleaned = value.strip()
+    if not cleaned:
+        return None
+    if cleaned.lower() == "none":
+        return None
+    return cleaned
+
+
+def user_display_name(row: sqlite3.Row | dict | None) -> str:
+    if not row:
+        return ""
+    last_name = (row.get("last_name") if isinstance(row, dict) else row["last_name"]) or ""
+    first_name = (row.get("first_name") if isinstance(row, dict) else row["first_name"]) or ""
+    middle_name = (row.get("middle_name") if isinstance(row, dict) else row["middle_name"]) or ""
+    username = (row.get("username") if isinstance(row, dict) else row["username"]) or ""
+    full = " ".join(part for part in [last_name, first_name, middle_name] if part).strip()
+    return full or username
+
+
+def humanize_membership(created_at: str | None) -> str:
+    if not created_at:
+        return ""
+    try:
+        joined = datetime.fromisoformat(created_at.replace("Z", ""))
+    except ValueError:
+        return ""
+    now = datetime.utcnow()
+    if now < joined:
+        return "менше місяця"
+    years = now.year - joined.year - ((now.month, now.day) < (joined.month, joined.day))
+    month_delta = (now.year - joined.year) * 12 + (now.month - joined.month)
+    if now.day < joined.day:
+        month_delta -= 1
+    months_only = max(0, month_delta - years * 12)
+
+    year_word = "років"
+    if years % 10 == 1 and years % 100 != 11:
+        year_word = "рік"
+    elif years % 10 in (2, 3, 4) and years % 100 not in (12, 13, 14):
+        year_word = "роки"
+
+    month_word = "місяців"
+    if months_only % 10 == 1 and months_only % 100 != 11:
+        month_word = "місяць"
+    elif months_only % 10 in (2, 3, 4) and months_only % 100 not in (12, 13, 14):
+        month_word = "місяці"
+
+    if years > 0 and months_only > 0:
+        return f"{years} {year_word} {months_only} {month_word}"
+    if years > 0:
+        return f"{years} {year_word}"
+    return f"{months_only} {month_word}"
 
 def resize_image(image_path, max_width=1200, max_height=800):
     """Resize image to fit within specified dimensions while maintaining aspect ratio"""
@@ -285,6 +382,11 @@ def init_db() -> None:
           username TEXT UNIQUE NOT NULL,
           password_hash TEXT NOT NULL,
           role TEXT NOT NULL,
+          last_name TEXT,
+          first_name TEXT,
+          middle_name TEXT,
+          position TEXT,
+          profile_text TEXT,
           created_at TEXT NOT NULL
         )
         """
@@ -317,14 +419,66 @@ def init_db() -> None:
           external_link TEXT,
           featured_image TEXT,
           image_gallery TEXT,
+          author_id INTEGER,
           created_at TEXT NOT NULL,
           updated_at TEXT NOT NULL,
+          FOREIGN KEY(author_id) REFERENCES users(id),
           FOREIGN KEY(section_id) REFERENCES menu_items(id)
         )
         """
     )
 
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS course_applications (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          full_name TEXT NOT NULL,
+          previous_school TEXT NOT NULL,
+          study_years TEXT NOT NULL,
+          phone TEXT NOT NULL,
+          telegram_username TEXT NOT NULL,
+          status TEXT NOT NULL DEFAULT 'Нова',
+          created_at TEXT NOT NULL
+        )
+        """
+    )
+
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS home_promos (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          title TEXT NOT NULL,
+          description TEXT,
+          image_path TEXT,
+          block_size TEXT NOT NULL DEFAULT 'md',
+          button_text TEXT,
+          button_url TEXT NOT NULL DEFAULT '#',
+          button_size TEXT NOT NULL DEFAULT 'md',
+          button_bg_color TEXT NOT NULL DEFAULT '#0b5ed7',
+          button_text_color TEXT NOT NULL DEFAULT '#ffffff',
+          button_position TEXT NOT NULL DEFAULT 'center',
+          sort_order INTEGER NOT NULL DEFAULT 0,
+          is_active INTEGER NOT NULL DEFAULT 1,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        )
+        """
+    )
+
     # Add new columns if they don't exist (for existing databases)
+    cursor.execute("PRAGMA table_info(users)")
+    user_columns = [column[1] for column in cursor.fetchall()]
+    if "last_name" not in user_columns:
+        cursor.execute("ALTER TABLE users ADD COLUMN last_name TEXT")
+    if "first_name" not in user_columns:
+        cursor.execute("ALTER TABLE users ADD COLUMN first_name TEXT")
+    if "middle_name" not in user_columns:
+        cursor.execute("ALTER TABLE users ADD COLUMN middle_name TEXT")
+    if "position" not in user_columns:
+        cursor.execute("ALTER TABLE users ADD COLUMN position TEXT")
+    if "profile_text" not in user_columns:
+        cursor.execute("ALTER TABLE users ADD COLUMN profile_text TEXT")
+
     cursor.execute("PRAGMA table_info(articles)")
     columns = [column[1] for column in cursor.fetchall()]
     
@@ -333,6 +487,68 @@ def init_db() -> None:
     
     if 'image_gallery' not in columns:
         cursor.execute("ALTER TABLE articles ADD COLUMN image_gallery TEXT")
+    if "author_id" not in columns:
+        cursor.execute("ALTER TABLE articles ADD COLUMN author_id INTEGER")
+
+    cursor.execute("PRAGMA table_info(home_promos)")
+    promo_columns = [column[1] for column in cursor.fetchall()]
+    if "block_size" not in promo_columns:
+        cursor.execute("ALTER TABLE home_promos ADD COLUMN block_size TEXT NOT NULL DEFAULT 'md'")
+    cursor.execute("PRAGMA table_info(course_applications)")
+    course_columns = [column[1] for column in cursor.fetchall()]
+    if "status" not in course_columns:
+        cursor.execute("ALTER TABLE course_applications ADD COLUMN status TEXT NOT NULL DEFAULT 'Нова'")
+
+    # Cleanup legacy values where the string "None" was stored as text.
+    cursor.execute(
+        """
+        UPDATE articles
+        SET summary = ''
+        WHERE LOWER(TRIM(COALESCE(summary, ''))) = 'none'
+        """
+    )
+    cursor.execute(
+        """
+        UPDATE articles
+        SET event_date = NULL
+        WHERE LOWER(TRIM(COALESCE(event_date, ''))) = 'none'
+        """
+    )
+    cursor.execute(
+        """
+        UPDATE articles
+        SET external_link = NULL
+        WHERE LOWER(TRIM(COALESCE(external_link, ''))) = 'none'
+        """
+    )
+    cursor.execute(
+        """
+        UPDATE home_promos
+        SET description = NULL
+        WHERE LOWER(TRIM(COALESCE(description, ''))) = 'none'
+        """
+    )
+    cursor.execute(
+        """
+        UPDATE home_promos
+        SET button_text = NULL
+        WHERE LOWER(TRIM(COALESCE(button_text, ''))) = 'none'
+        """
+    )
+    cursor.execute(
+        """
+        UPDATE home_promos
+        SET button_url = '#'
+        WHERE LOWER(TRIM(COALESCE(button_url, ''))) = 'none'
+        """
+    )
+    cursor.execute(
+        """
+        UPDATE course_applications
+        SET status = 'Нова'
+        WHERE status IS NULL OR TRIM(status) = '' OR LOWER(TRIM(status)) = 'none'
+        """
+    )
 
     cursor.execute("SELECT COUNT(*) FROM users")
     if cursor.fetchone()[0] == 0:
@@ -675,22 +891,96 @@ def can_manage_user(actor: sqlite3.Row, target: sqlite3.Row) -> bool:
 
 @app.route("/")
 def index():
+    promos = query_db(
+        """
+        SELECT *
+        FROM home_promos
+        WHERE is_active = 1
+        ORDER BY sort_order ASC, id ASC
+        """
+    )
     articles = query_db(
         """
-        SELECT articles.*, menu_items.title AS section_title
+        SELECT articles.*, menu_items.title AS section_title,
+               users.username AS author_username,
+               TRIM(COALESCE(users.last_name, '') || ' ' || COALESCE(users.first_name, '') || ' ' || COALESCE(users.middle_name, '')) AS author_full_name
         FROM articles
         LEFT JOIN menu_items ON menu_items.id = articles.section_id
+        LEFT JOIN users ON users.id = articles.author_id
         WHERE articles.section_id IS NULL
-        ORDER BY articles.published_date DESC
+        ORDER BY articles.created_at DESC, articles.id DESC
         LIMIT 3
         """
     )
-    return render_template("index.html", active_title="Головна", articles=articles)
+    return render_template("index.html", active_title="Головна", articles=articles, promos=promos)
 
 
 @app.route("/admissions-2026")
 def admissions():
     return render_template("admissions-2026.html", active_title="Абітурієнту")
+
+
+@app.route("/courses")
+def courses():
+    return render_template("courses.html", active_title="")
+
+
+@app.route("/courses/apply", methods=["GET", "POST"])
+def courses_apply():
+    form_data = {
+        "full_name": "",
+        "previous_school": "",
+        "study_years": "",
+        "phone": "",
+        "telegram_username": "",
+    }
+
+    if request.method == "POST":
+        form_data["full_name"] = request.form.get("full_name", "").strip()
+        form_data["previous_school"] = request.form.get("previous_school", "").strip()
+        form_data["study_years"] = request.form.get("study_years", "").strip()
+        form_data["phone"] = request.form.get("phone", "").strip()
+        form_data["telegram_username"] = request.form.get("telegram_username", "").strip()
+
+        if not all(form_data.values()):
+            flash("Заповніть усі поля форми.", "error")
+        else:
+            execute_db(
+                """
+                INSERT INTO course_applications
+                (full_name, previous_school, study_years, phone, telegram_username, status, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    form_data["full_name"],
+                    form_data["previous_school"],
+                    form_data["study_years"],
+                    form_data["phone"],
+                    form_data["telegram_username"],
+                    "Нова",
+                    datetime.utcnow().isoformat(),
+                ),
+            )
+            flash("Заявку на курси надіслано. Ми зв'яжемося з вами.", "success")
+            return redirect(url_for("courses_apply"))
+
+    return render_template("courses_apply.html", active_title="", form_data=form_data)
+
+
+@app.route("/users/<username>")
+def user_profile(username: str):
+    user = query_db("SELECT * FROM users WHERE username = ?", (username,), one=True)
+    if not user:
+        abort(404)
+    display_name = user_display_name(user)
+    member_for = humanize_membership(user["created_at"])
+    return render_template(
+        "user_profile.html",
+        profile_user=user,
+        display_name=display_name,
+        member_for=member_for,
+        active_title="",
+    )
 
 
 @app.route("/page/<slug>")
@@ -719,6 +1009,28 @@ def section(section_id: int):
     if not section_item:
         abort(404)
 
+    # If a section has exactly one direct article with external link and no sub-sections,
+    # open the link immediately instead of showing section listing.
+    direct_count_row = query_db(
+        "SELECT COUNT(*) AS total FROM articles WHERE section_id = ?",
+        (section_id,),
+        one=True,
+    )
+    direct_count = int(direct_count_row["total"]) if direct_count_row else 0
+    if direct_count == 1 and not section_item["children"]:
+        direct_article = query_db(
+            """
+            SELECT external_link
+            FROM articles
+            WHERE section_id = ? AND external_link IS NOT NULL AND TRIM(external_link) <> ''
+            LIMIT 1
+            """,
+            (section_id,),
+            one=True,
+        )
+        if direct_article and direct_article["external_link"]:
+            return redirect(direct_article["external_link"])
+
     section_ids = get_descendant_ids(section_id)
     placeholders = ",".join("?" * len(section_ids))
     articles = query_db(
@@ -742,41 +1054,109 @@ def section(section_id: int):
 @app.route("/articles")
 def articles():
     category = request.args.get("category", "").strip()
-    section_id = request.args.get("section_id", "").strip()
 
     query = """
-        SELECT articles.*, menu_items.title AS section_title
+        SELECT articles.*, menu_items.title AS section_title,
+               users.username AS author_username,
+               TRIM(COALESCE(users.last_name, '') || ' ' || COALESCE(users.first_name, '') || ' ' || COALESCE(users.middle_name, '')) AS author_full_name
         FROM articles
         LEFT JOIN menu_items ON menu_items.id = articles.section_id
-        WHERE 1 = 1
+        LEFT JOIN users ON users.id = articles.author_id
+        WHERE articles.section_id IS NULL
     """
     params: List = []
     if category:
         query += " AND articles.category = ?"
         params.append(category)
-    if section_id:
-        query += " AND articles.section_id = ?"
-        params.append(section_id)
 
-    query += " ORDER BY articles.published_date DESC"
-    articles_list = query_db(query, tuple(params))
+    page_raw = request.args.get("page", "1").strip()
+    page = int(page_raw) if page_raw.isdigit() and int(page_raw) > 0 else 1
+    per_page = 6
+    offset = (page - 1) * per_page
 
-    categories_to_show = ARTICLE_CATEGORIES
-    if category:
-        categories_to_show = [category]
+    count_row = query_db(
+        f"SELECT COUNT(*) AS total FROM ({query}) counted",
+        tuple(params),
+        one=True,
+    )
+    total = int(count_row["total"]) if count_row else 0
+    total_pages = max(1, (total + per_page - 1) // per_page)
+    if page > total_pages:
+        page = total_pages
+        offset = (page - 1) * per_page
 
-    articles_by_category: Dict[str, List[sqlite3.Row]] = {cat: [] for cat in categories_to_show}
-    for item in articles_list:
-        if item["category"] in articles_by_category:
-            articles_by_category[item["category"]].append(item)
+    query += " ORDER BY articles.created_at DESC, articles.id DESC LIMIT ? OFFSET ?"
+    articles_list = query_db(query, tuple(params + [per_page, offset]))
+
+    page_numbers = list(range(1, total_pages + 1))
 
     return render_template(
         "articles.html",
-        articles_by_category=articles_by_category,
+        articles=articles_list,
         categories=ARTICLE_CATEGORIES,
-        sections=get_menu_flat(),
         selected_category=category,
-        selected_section=section_id,
+        current_page=page,
+        total_pages=total_pages,
+        page_numbers=page_numbers,
+        active_title="",
+    )
+
+
+@app.route("/search")
+def search():
+    raw_query = request.args.get("q", "")
+    search_query = raw_query.strip()
+
+    page_raw = request.args.get("page", "1").strip()
+    page = int(page_raw) if page_raw.isdigit() and int(page_raw) > 0 else 1
+    per_page = 6
+    offset = (page - 1) * per_page
+
+    base_query = """
+        SELECT articles.*, menu_items.title AS section_title,
+               users.username AS author_username,
+               TRIM(COALESCE(users.last_name, '') || ' ' || COALESCE(users.first_name, '') || ' ' || COALESCE(users.middle_name, '')) AS author_full_name
+        FROM articles
+        LEFT JOIN menu_items ON menu_items.id = articles.section_id
+        LEFT JOIN users ON users.id = articles.author_id
+        WHERE articles.section_id IS NULL
+    """
+
+    params: List = []
+    if search_query:
+        like_value = f"%{search_query}%"
+        base_query += """
+            AND (
+                articles.title LIKE ?
+                OR articles.summary LIKE ?
+                OR articles.content LIKE ?
+                OR articles.category LIKE ?
+            )
+        """
+        params.extend([like_value, like_value, like_value, like_value])
+
+    count_row = query_db(
+        f"SELECT COUNT(*) AS total FROM ({base_query}) counted",
+        tuple(params),
+        one=True,
+    )
+    total = int(count_row["total"]) if count_row else 0
+    total_pages = max(1, (total + per_page - 1) // per_page)
+    if page > total_pages:
+        page = total_pages
+        offset = (page - 1) * per_page
+
+    query = base_query + " ORDER BY articles.created_at DESC, articles.id DESC LIMIT ? OFFSET ?"
+    results = query_db(query, tuple(params + [per_page, offset]))
+    page_numbers = list(range(1, total_pages + 1))
+
+    return render_template(
+        "search.html",
+        query=search_query,
+        articles=results,
+        current_page=page,
+        total_pages=total_pages,
+        page_numbers=page_numbers,
         active_title="",
     )
 
@@ -785,9 +1165,12 @@ def articles():
 def article_detail(article_id: int):
     article = query_db(
         """
-        SELECT articles.*, menu_items.title AS section_title
+        SELECT articles.*, menu_items.title AS section_title,
+               users.username AS author_username,
+               TRIM(COALESCE(users.last_name, '') || ' ' || COALESCE(users.first_name, '') || ' ' || COALESCE(users.middle_name, '')) AS author_full_name
         FROM articles
         LEFT JOIN menu_items ON menu_items.id = articles.section_id
+        LEFT JOIN users ON users.id = articles.author_id
         WHERE articles.id = ?
         """,
         (article_id,),
@@ -858,6 +1241,226 @@ def admin_dashboard():
     return render_template("admin/dashboard.html", active_title="")
 
 
+@app.route("/admin/home-promos")
+@role_required("owner", "admin", "editor")
+def admin_home_promos():
+    promos = query_db(
+        """
+        SELECT *
+        FROM home_promos
+        ORDER BY sort_order ASC, id ASC
+        """
+    )
+    return render_template("admin/home_promos.html", promos=promos, active_title="")
+
+
+@app.route("/admin/home-promos/new", methods=["GET", "POST"])
+@role_required("owner", "admin", "editor")
+def admin_home_promo_new():
+    if request.method == "POST":
+        title = request.form.get("title", "").strip()
+        description = normalize_optional_text(request.form.get("description"))
+        button_text = normalize_optional_text(request.form.get("button_text"))
+        button_url = normalize_button_url(request.form.get("button_url", "").strip())
+        block_size = request.form.get("block_size", "md").strip()
+        button_size = request.form.get("button_size", "md").strip()
+        button_position = request.form.get("button_position", "center").strip()
+        button_bg_color = normalize_hex_color(request.form.get("button_bg_color"), "#0b5ed7")
+        button_text_color = normalize_hex_color(request.form.get("button_text_color"), "#ffffff")
+        sort_order_raw = request.form.get("sort_order", "0").strip()
+        is_active = 1 if request.form.get("is_active") == "on" else 0
+
+        block_size = block_size if block_size in {"sm", "md", "lg"} else "md"
+        button_size = button_size if button_size in {"sm", "md", "lg"} else "md"
+        button_position = button_position if button_position in {"left", "center", "right"} else "center"
+        sort_order = int(sort_order_raw) if sort_order_raw.isdigit() else 0
+        image_path = None
+
+        if "image_file" in request.files:
+            file = request.files["image_file"]
+            if file and file.filename and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                unique_filename = f"{uuid.uuid4().hex}_{filename}"
+                rel_path = f"home_promos/{unique_filename}"
+                upload_path = upload_fs_path(rel_path)
+                os.makedirs(os.path.dirname(upload_path), exist_ok=True)
+                file.save(upload_path)
+                resize_image(upload_path, max_width=1600, max_height=1000)
+                image_path = rel_path
+
+        if not title:
+            flash("Вкажіть назву блоку.", "error")
+        else:
+            now = datetime.utcnow().isoformat()
+            execute_db(
+                """
+                INSERT INTO home_promos
+                (
+                  title, description, image_path, block_size, button_text, button_url, button_size,
+                  button_bg_color, button_text_color, button_position, sort_order, is_active,
+                  created_at, updated_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    title,
+                    description,
+                    image_path,
+                    block_size,
+                    button_text,
+                    button_url,
+                    button_size,
+                    button_bg_color,
+                    button_text_color,
+                    button_position,
+                    sort_order,
+                    is_active,
+                    now,
+                    now,
+                ),
+            )
+            flash("Промо-блок створено.", "success")
+            return redirect(url_for("admin_home_promos"))
+
+    return render_template("admin/home_promo_form.html", promo=None, active_title="")
+
+
+@app.route("/admin/home-promos/<int:promo_id>/edit", methods=["GET", "POST"])
+@role_required("owner", "admin", "editor")
+def admin_home_promo_edit(promo_id: int):
+    promo = query_db("SELECT * FROM home_promos WHERE id = ?", (promo_id,), one=True)
+    if not promo:
+        abort(404)
+
+    if request.method == "POST":
+        title = request.form.get("title", "").strip()
+        description = normalize_optional_text(request.form.get("description"))
+        button_text = normalize_optional_text(request.form.get("button_text"))
+        button_url = normalize_button_url(request.form.get("button_url", "").strip())
+        block_size = request.form.get("block_size", "md").strip()
+        button_size = request.form.get("button_size", "md").strip()
+        button_position = request.form.get("button_position", "center").strip()
+        button_bg_color = normalize_hex_color(request.form.get("button_bg_color"), "#0b5ed7")
+        button_text_color = normalize_hex_color(request.form.get("button_text_color"), "#ffffff")
+        sort_order_raw = request.form.get("sort_order", "0").strip()
+        is_active = 1 if request.form.get("is_active") == "on" else 0
+        remove_image = request.form.get("remove_image") == "1"
+
+        block_size = block_size if block_size in {"sm", "md", "lg"} else "md"
+        button_size = button_size if button_size in {"sm", "md", "lg"} else "md"
+        button_position = button_position if button_position in {"left", "center", "right"} else "center"
+        sort_order = int(sort_order_raw) if sort_order_raw.isdigit() else 0
+
+        image_path = promo["image_path"]
+        if remove_image and image_path:
+            old_path = upload_fs_path(image_path)
+            if old_path and os.path.exists(old_path):
+                os.remove(old_path)
+            image_path = None
+
+        if "image_file" in request.files:
+            file = request.files["image_file"]
+            if file and file.filename and allowed_file(file.filename):
+                if image_path:
+                    old_path = upload_fs_path(image_path)
+                    if old_path and os.path.exists(old_path):
+                        os.remove(old_path)
+                filename = secure_filename(file.filename)
+                unique_filename = f"{uuid.uuid4().hex}_{filename}"
+                rel_path = f"home_promos/{unique_filename}"
+                upload_path = upload_fs_path(rel_path)
+                os.makedirs(os.path.dirname(upload_path), exist_ok=True)
+                file.save(upload_path)
+                resize_image(upload_path, max_width=1600, max_height=1000)
+                image_path = rel_path
+
+        if not title:
+            flash("Вкажіть назву блоку.", "error")
+        else:
+            execute_db(
+                """
+                UPDATE home_promos
+                SET title = ?, description = ?, image_path = ?, block_size = ?, button_text = ?, button_url = ?,
+                    button_size = ?, button_bg_color = ?, button_text_color = ?, button_position = ?,
+                    sort_order = ?, is_active = ?, updated_at = ?
+                WHERE id = ?
+                """,
+                (
+                    title,
+                    description,
+                    image_path,
+                    block_size,
+                    button_text,
+                    button_url,
+                    button_size,
+                    button_bg_color,
+                    button_text_color,
+                    button_position,
+                    sort_order,
+                    is_active,
+                    datetime.utcnow().isoformat(),
+                    promo_id,
+                ),
+            )
+            flash("Промо-блок оновлено.", "success")
+            return redirect(url_for("admin_home_promos"))
+
+    return render_template("admin/home_promo_form.html", promo=promo, active_title="")
+
+
+@app.route("/admin/home-promos/<int:promo_id>/delete", methods=["POST"])
+@role_required("owner", "admin", "editor")
+def admin_home_promo_delete(promo_id: int):
+    promo = query_db("SELECT * FROM home_promos WHERE id = ?", (promo_id,), one=True)
+    if not promo:
+        abort(404)
+    if promo["image_path"]:
+        old_path = upload_fs_path(promo["image_path"])
+        if old_path and os.path.exists(old_path):
+            os.remove(old_path)
+    execute_db("DELETE FROM home_promos WHERE id = ?", (promo_id,))
+    flash("Промо-блок видалено.", "success")
+    return redirect(url_for("admin_home_promos"))
+
+
+@app.route("/admin/course-applications")
+@role_required("owner", "admin", "editor")
+def admin_course_applications():
+    applications = query_db(
+        """
+        SELECT *
+        FROM course_applications
+        ORDER BY created_at DESC
+        """
+    )
+    return render_template(
+        "admin/course_applications.html",
+        applications=applications,
+        status_suggestions=COURSE_APPLICATION_STATUSES,
+        active_title="",
+    )
+
+
+@app.route("/admin/course-applications/<int:application_id>/status", methods=["POST"])
+@role_required("owner", "admin", "editor")
+def admin_course_application_status(application_id: int):
+    application = query_db(
+        "SELECT id FROM course_applications WHERE id = ?",
+        (application_id,),
+        one=True,
+    )
+    if not application:
+        abort(404)
+
+    status = normalize_optional_text(request.form.get("status")) or "Нова"
+    execute_db(
+        "UPDATE course_applications SET status = ? WHERE id = ?",
+        (status, application_id),
+    )
+    flash("Статус заявки оновлено.", "success")
+    return redirect(url_for("admin_course_applications"))
+
+
 @app.route("/admin/users")
 @role_required("owner", "admin")
 def admin_users():
@@ -875,6 +1478,11 @@ def admin_user_new():
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "")
         role = request.form.get("role")
+        last_name = normalize_optional_text(request.form.get("last_name"))
+        first_name = normalize_optional_text(request.form.get("first_name"))
+        middle_name = normalize_optional_text(request.form.get("middle_name"))
+        position = normalize_optional_text(request.form.get("position"))
+        profile_text = normalize_optional_text(request.form.get("profile_text"))
         if role not in roles:
             flash("Недоступна роль для створення.", "error")
         elif not username or not password:
@@ -883,10 +1491,20 @@ def admin_user_new():
             try:
                 execute_db(
                     """
-                    INSERT INTO users (username, password_hash, role, created_at)
-                    VALUES (?, ?, ?, ?)
+                    INSERT INTO users (username, password_hash, role, last_name, first_name, middle_name, position, profile_text, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
-                    (username, generate_password_hash(password), role, datetime.utcnow().isoformat()),
+                    (
+                        username,
+                        generate_password_hash(password),
+                        role,
+                        last_name,
+                        first_name,
+                        middle_name,
+                        position,
+                        profile_text,
+                        datetime.utcnow().isoformat(),
+                    ),
                 )
                 flash("Користувача створено.", "success")
                 return redirect(url_for("admin_users"))
@@ -914,14 +1532,23 @@ def admin_user_edit(user_id: int):
         username = request.form.get("username", "").strip()
         role = request.form.get("role", user["role"])
         password = request.form.get("password", "")
+        last_name = normalize_optional_text(request.form.get("last_name"))
+        first_name = normalize_optional_text(request.form.get("first_name"))
+        middle_name = normalize_optional_text(request.form.get("middle_name"))
+        position = normalize_optional_text(request.form.get("position"))
+        profile_text = normalize_optional_text(request.form.get("profile_text"))
         if not username:
             flash("Логін не може бути порожнім.", "error")
         else:
             if role not in roles and g.user["id"] != user["id"]:
                 role = user["role"]
             execute_db(
-                "UPDATE users SET username = ?, role = ? WHERE id = ?",
-                (username, role, user_id),
+                """
+                UPDATE users
+                SET username = ?, role = ?, last_name = ?, first_name = ?, middle_name = ?, position = ?, profile_text = ?
+                WHERE id = ?
+                """,
+                (username, role, last_name, first_name, middle_name, position, profile_text, user_id),
             )
             if password:
                 execute_db(
@@ -1047,14 +1674,14 @@ def admin_article_new():
     sections = get_menu_flat()
     if request.method == "POST":
         title = request.form.get("title", "").strip()
-        summary = request.form.get("summary", "").strip()
+        summary = normalize_optional_text(request.form.get("summary")) or ""
         content = request.form.get("content", "").strip()
         category = request.form.get("category", ARTICLE_CATEGORIES[0])
         section_id = request.form.get("section_id") or None
         section_id = int(section_id) if section_id else None
         published_date = request.form.get("published_date") or datetime.utcnow().date().isoformat()
-        event_date = request.form.get("event_date") or None
-        external_link = request.form.get("external_link", "").strip() or None
+        event_date = normalize_optional_text(request.form.get("event_date"))
+        external_link = normalize_optional_text(request.form.get("external_link"))
 
         # Handle file uploads
         featured_image = None
@@ -1092,9 +1719,9 @@ def admin_article_new():
         else:
             execute_db(
                 """
-                INSERT INTO articles
-                (title, summary, content, category, section_id, published_date, event_date, external_link, featured_image, image_gallery, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    INSERT INTO articles
+                (title, summary, content, category, section_id, published_date, event_date, external_link, featured_image, image_gallery, author_id, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     title,
@@ -1107,6 +1734,7 @@ def admin_article_new():
                     external_link,
                     featured_image,
                     json.dumps(image_gallery) if image_gallery else None,
+                    g.user["id"] if g.user else None,
                     datetime.utcnow().isoformat(),
                     datetime.utcnow().isoformat(),
                 ),
@@ -1132,14 +1760,14 @@ def admin_article_edit(article_id: int):
     sections = get_menu_flat()
     if request.method == "POST":
         title = request.form.get("title", "").strip()
-        summary = request.form.get("summary", "").strip()
+        summary = normalize_optional_text(request.form.get("summary")) or ""
         content = request.form.get("content", "").strip()
         category = request.form.get("category", ARTICLE_CATEGORIES[0])
         section_id = request.form.get("section_id") or None
         section_id = int(section_id) if section_id else None
         published_date = request.form.get("published_date") or datetime.utcnow().date().isoformat()
-        event_date = request.form.get("event_date") or None
-        external_link = request.form.get("external_link", "").strip() or None
+        event_date = normalize_optional_text(request.form.get("event_date"))
+        external_link = normalize_optional_text(request.form.get("external_link"))
 
         # Handle file uploads
         featured_image_raw = article["featured_image"]

@@ -14,7 +14,7 @@
       </p>
       <div class="hero-actions">
         <a class="btn primary" href="{{ url_for('admissions') }}">Абітурієнт-2026</a>
-        <a class="btn outline" href="#courses">Записатися на курси</a>
+        <a class="btn outline" href="{{ url_for('courses') }}">Записатися на курси</a>
         <!-- <a class="btn ghost" href="#survey">Пройти опитування</a> -->
       </div>
       <div class="hero-meta">
@@ -35,22 +35,51 @@
   </section>
 
   <section class="section">
-    <div class="container quick-actions">
-      <div class="info-card" id="courses">
-        <h3>Підготовчі курси</h3>
-        <p>Інтенсиви для впевненого вступу та адаптації першокурсників.</p>
-        <a class="link" href="#">Детальніше</a>
-      </div>
-      <div class="info-card">
-        <h3>Конкурси</h3>
-        <p>Олімпіади, гранти та змагання для майбутніх студентів.</p>
-        <a class="link" href="#">Переглянути всі</a>
-      </div>
-      <div class="cta-stack" id="survey">
-        <a class="btn primary" href="#">Записатися на курси</a>
-        <a class="btn secondary" href="{{ url_for('admissions') }}">Абітурієнт-2026</a>
-        <!-- <a class="btn outline" href="#">Пройти опитування</a> -->
-      </div>
+    <div class="container quick-actions {% if promos %}promo-grid{% endif %}">
+      {% if promos %}
+        {% for promo in promos %}
+          <article class="promo-card promo-{{ promo.block_size or 'md' }}">
+            {% if promo.image_path %}
+              <div class="promo-media">
+                <img src="{{ uploads_url(promo.image_path) }}" alt="{{ promo.title }}">
+              </div>
+            {% endif %}
+            <div class="promo-content">
+              <h3>{{ promo.title }}</h3>
+              {% set promo_description = promo.description|clean_text %}
+              {% if promo_description %}
+                <p>{{ promo_description }}</p>
+              {% endif %}
+              {% if promo.button_text %}
+                <div class="promo-button-row promo-{{ promo.button_position }}">
+                  <a
+                    class="btn promo-btn promo-btn-{{ promo.button_size }}"
+                    href="{{ promo.button_url }}"
+                    style="--promo-bg: {{ promo.button_bg_color }}; --promo-fg: {{ promo.button_text_color }};"
+                  >
+                    {{ promo.button_text }}
+                  </a>
+                </div>
+              {% endif %}
+            </div>
+          </article>
+        {% endfor %}
+      {% else %}
+        <div class="info-card" id="courses">
+          <h3>Підготовчі курси</h3>
+          <p>Інтенсиви для впевненого вступу та адаптації першокурсників.</p>
+          <a class="link" href="{{ url_for('courses') }}">Детальніше</a>
+        </div>
+        <div class="info-card">
+          <h3>Конкурси</h3>
+          <p>Олімпіади, гранти та змагання для майбутніх студентів.</p>
+          <a class="link" href="#">Переглянути всі</a>
+        </div>
+        <div class="cta-stack" id="survey">
+          <a class="btn primary" href="{{ url_for('courses') }}">Записатися на курси</a>
+          <a class="btn secondary" href="{{ url_for('admissions') }}">Абітурієнт-2026</a>
+        </div>
+      {% endif %}
     </div>
   </section>
 
@@ -79,6 +108,13 @@
               <div class="article-meta">
                 <span class="badge">{{ article.category }}</span>
                 <span class="muted">Публікація: {{ article.published_date }}</span>
+                {% set author_name = article.author_full_name|trim if article.author_full_name else '' %}
+                {% if article.author_username %}
+                  <span class="muted">
+                    Автор:
+                    <a class="link" href="{{ url_for('user_profile', username=article.author_username) }}">{{ author_name or article.author_username }}</a>
+                  </span>
+                {% endif %}
                 {% if article.event_date %}
                   <span class="muted">Подія: {{ article.event_date }}</span>
                 {% endif %}
@@ -86,9 +122,14 @@
               <h3>
                 <a href="{{ url_for('article_detail', article_id=article.id) }}">{{ article.title }}</a>
               </h3>
-              <p>{{ article.summary }}</p>
+              {% set summary_text = article.summary|clean_text %}
+              {% if summary_text %}
+                <p>{{ summary_text }}</p>
+              {% endif %}
               <div class="article-footer">
-                <span class="muted">{{ article.section_title or 'Без розділу' }}</span>
+                {% if article.section_title %}
+                  <span class="muted">{{ article.section_title }}</span>
+                {% endif %}
                 <a class="link" href="{{ url_for('article_detail', article_id=article.id) }}">Читати</a>
               </div>
             </article>

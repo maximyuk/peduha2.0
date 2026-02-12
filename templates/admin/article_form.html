@@ -17,11 +17,11 @@
         <form method="post" enctype="multipart/form-data" class="form-grid">
           <label class="form-field">
             Назва
-            <input class="input" name="title" type="text" value="{{ article.title if article else '' }}" required />
+            <input class="input" name="title" type="text" value="{{ article.title|clean_text if article else '' }}" required />
           </label>
           <label class="form-field">
             Короткий опис
-            <textarea class="textarea" name="summary" rows="3">{{ article.summary if article else '' }}</textarea>
+            <textarea class="textarea" name="summary" rows="3">{{ article.summary|clean_text if article else '' }}</textarea>
           </label>
           <div class="form-field">
             <div>Повний текст</div>
@@ -52,7 +52,7 @@
               contenteditable="true"
               spellcheck="true"
               aria-label="Повний текст"
-              data-initial='{{ (article.content if article else "")|tojson }}'
+              data-initial='{{ (article.content|clean_text if article else "")|tojson }}'
             ></div>
             <textarea class="textarea" id="content-textarea" name="content" rows="6" style="display:none;"></textarea>
             <small>Порада: форматування збережеться. PDF додається як посилання в текст.</small>
@@ -84,7 +84,7 @@
               class="input"
               name="published_date"
               type="date"
-              value="{{ article.published_date if article else '' }}"
+              value="{{ article.published_date|clean_text if article else '' }}"
             />
           </label>
           <label class="form-field">
@@ -93,7 +93,7 @@
               class="input"
               name="event_date"
               type="date"
-              value="{{ article.event_date if article else '' }}"
+              value="{{ article.event_date|clean_text if article else '' }}"
             />
           </label>
           <label class="form-field">
@@ -103,7 +103,7 @@
               name="external_link"
               type="url"
               placeholder="https://example.com"
-              value="{{ article.external_link if article else '' }}"
+              value="{{ article.external_link|clean_text if article else '' }}"
             />
             <small>Якщо заповнено, статія буде посиланням на цей сайт</small>
           </label>

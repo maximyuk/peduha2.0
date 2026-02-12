@@ -14,7 +14,7 @@
       </div>
 
       <div class="table-wrap">
-        <table class="table">
+        <table class="table admin-table admin-articles-table">
           <thead>
             <tr>
               <th>Зображення</th>
@@ -29,30 +29,26 @@
           <tbody>
             {% for article in articles %}
               <tr>
-                <td>
+                <td class="article-thumb-cell cell-no-label" data-label="Зображення">
                   {% if article.featured_image %}
-                    <img src="{{ uploads_url(article.featured_image) }}" 
-                         style="width: 60px; height: 45px; object-fit: cover; border-radius: 4px;" 
-                         alt="{{ article.title }}">
+                    <img src="{{ uploads_url(article.featured_image) }}" class="table-thumb" alt="{{ article.title }}">
                   {% elif article.image_gallery %}
                     {% set gallery = article.image_gallery|from_json if article.image_gallery else [] %}
                     {% if gallery %}
-                      <img src="{{ uploads_url(gallery[0]) }}" 
-                           style="width: 60px; height: 45px; object-fit: cover; border-radius: 4px;" 
-                           alt="{{ article.title }}">
+                      <img src="{{ uploads_url(gallery[0]) }}" class="table-thumb" alt="{{ article.title }}">
                     {% else %}
-                      <div style="width: 60px; height: 45px; background: #f0f0f0; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #999; font-size: 10px;">Немає</div>
+                      <div class="table-thumb-placeholder">Немає</div>
                     {% endif %}
                   {% else %}
-                    <div style="width: 60px; height: 45px; background: #f0f0f0; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #999; font-size: 10px;">Немає</div>
+                    <div class="table-thumb-placeholder">Немає</div>
                   {% endif %}
                 </td>
-                <td>{{ article.title }}</td>
-                <td><span class="badge">{{ article.category }}</span></td>
-                <td>{{ article.section_title or '-' }}</td>
-                <td>{{ article.published_date }}</td>
-                <td>{{ article.event_date or '-' }}</td>
-                <td class="table-actions">
+                <td data-label="Назва">{{ article.title }}</td>
+                <td data-label="Категорія"><span class="badge">{{ article.category }}</span></td>
+                <td data-label="Розділ">{{ article.section_title or '-' }}</td>
+                <td data-label="Публікація">{{ article.published_date }}</td>
+                <td data-label="Дата події">{{ article.event_date or '-' }}</td>
+                <td class="table-actions" data-label="Дії">
                   <a class="link" href="{{ url_for('admin_article_edit', article_id=article.id) }}">Редагувати</a>
                   <form method="post" action="{{ url_for('admin_article_delete', article_id=article.id) }}">
                     <button class="link danger" type="submit">Видалити</button>
@@ -60,7 +56,7 @@
                 </td>
               </tr>
             {% else %}
-              <tr>
+              <tr class="table-empty">
                 <td colspan="7">Немає статей.</td>
               </tr>
             {% endfor %}

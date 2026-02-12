@@ -19,8 +19,7 @@
           <span class="topbar-note">Офіційний сайт коледжу</span>
           <div class="topbar-actions">
             <button class="chip" type="button">UA</button>
-            <!-- <button class="chip" type="button">EN</button> -->
-            <a class="chip ghost" href="#">Пошук</a>
+            <a class="chip ghost" href="{{ url_for('search') }}">Пошук</a>
             {% if current_user %}
               <a class="chip ghost" href="{{ url_for('admin_dashboard') }}">Панель</a>
               <a class="chip ghost" href="{{ url_for('logout') }}">Вийти</a>
@@ -134,30 +133,6 @@
             Адреса: вул. Устилузька, м. Володимир · Тел: +38 (000) 000-00-00
           </p>
         </div>
-<!-- <div class="footer-logos">
-          <a href="/mon" class="logo-tile">
-            <img src="images/mon.png" alt="МОН" />
-            <span>МОН</span>
-          </a>
-          <a href="/dpa" class="logo-tile">
-            <img src="images/dpa.png" alt="ДПА" />
-            <span>ДПА</span>
-          </a>
-          <a href="/osvita" class="logo-tile">
-            <img src="images/mon.png" alt="OSVITA" />
-            <span>OSVITA</span>
-          </a>
-          <a href="/edebo" class="logo-tile">
-            <img src="images/mon.png" alt="EDEBO" />
-            <span>EDEBO</span>
-          </a> -->
-        <!-- </div>
-        <div class="footer-links">
-          <a href="#">Публічна інформація</a>
-          <a href="#">Електронна бібліотека</a>
-          <a href="#">Політика конфіденційності</a>
-          <a href="#">Контакти</a>
-        </div> -->
       </div>
     </footer>
 

@@ -1,0 +1,61 @@
+{% extends "layout.html" %}
+
+{% block title %}Запис на курси — ВПФК{% endblock %}
+
+{% block content %}
+  <section class="hero hero-inner">
+    <div class="hero-overlay"></div>
+    <div class="container hero-content">
+      <div class="hero-badge">Підготовчі курси</div>
+      <h1>Запис на курси для абітурієнтів</h1>
+      <p>
+        Оберіть напрям, залиште контактні дані та отримайте підтвердження від приймальної комісії.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container split">
+      <div>
+        <h2>Що входить у підготовку</h2>
+        <div class="doc-list">
+          <div class="doc-item">Українська мова та література</div>
+          <div class="doc-item">Математика</div>
+          <div class="doc-item">Історія України</div>
+          <div class="doc-item">Карʼєрні консультації та профорієнтація</div>
+        </div>
+      </div>
+      <div class="contact-card">
+        <h3>Форма заявки</h3>
+        <p><strong>Телефон:</strong> +38 (000) 000-00-00</p>
+        <p><strong>Email:</strong> courses@example.com</p>
+        <p><strong>Графік:</strong> Пн–Пт 09:00–17:00</p>
+        <a class="btn primary" href="{{ url_for('courses_apply') }}">Надіслати заявку</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section-alt">
+    <div class="container">
+      <div class="section-header">
+        <h2>Наступний старт групи</h2>
+      </div>
+      <div class="timeline">
+        <div class="timeline-item">
+          <div class="date-pill">Щосуботи</div>
+          <div>
+            <h3>Ознайомча зустріч</h3>
+            <p>Онлайн або офлайн у коледжі — за попереднім записом.</p>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="date-pill">6 тижнів</div>
+          <div>
+            <h3>Тривалість курсу</h3>
+            <p>2–3 заняття на тиждень, індивідуальні рекомендації перед вступом.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+{% endblock %}

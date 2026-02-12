@@ -1,0 +1,105 @@
+{% extends "layout.html" %}
+
+{% block title %}Промо-блок — ВПФК{% endblock %}
+
+{% block content %}
+  <section class="section">
+    <div class="container admin-shell">
+      <div class="admin-header">
+        <div>
+          <h1>{{ 'Редагувати блок' if promo else 'Новий промо-блок' }}</h1>
+          <p>Налаштуйте контент і кнопку для головної сторінки.</p>
+        </div>
+        <a class="btn outline" href="{{ url_for('admin_home_promos') }}">Назад</a>
+      </div>
+
+      <div class="admin-card">
+        <form method="post" enctype="multipart/form-data" class="form-grid">
+          <label class="form-field">
+            Назва блоку
+            <input class="input" name="title" type="text" value="{{ promo.title|clean_text if promo else '' }}" required />
+          </label>
+
+          <label class="form-field">
+            Опис
+            <textarea class="textarea" name="description" rows="3">{{ promo.description|clean_text if promo else '' }}</textarea>
+          </label>
+
+          <label class="form-field">
+            Фото
+            <input class="input" type="file" name="image_file" accept="image/*" />
+            {% if promo and promo.image_path %}
+              <img src="{{ uploads_url(promo.image_path) }}" style="max-width: 260px; max-height: 160px; object-fit: cover; border-radius: 8px;" alt="{{ promo.title }}">
+              <label style="display:flex; gap:.5rem; align-items:center; font-weight:500;">
+                <input type="checkbox" name="remove_image" value="1" />
+                Видалити поточне фото
+              </label>
+            {% endif %}
+          </label>
+
+          <label class="form-field">
+            Текст кнопки
+            <input class="input" name="button_text" type="text" value="{{ promo.button_text|clean_text if promo else '' }}" />
+          </label>
+
+          <label class="form-field">
+            URL кнопки
+            <input class="input" name="button_url" type="text" value="{{ promo.button_url|clean_text if promo else '' }}" placeholder="/courses" />
+          </label>
+
+          <label class="form-field">
+            Розмір блоку
+            <select class="select" name="block_size">
+              {% set block_size = promo.block_size if promo else 'md' %}
+              <option value="sm" {% if block_size == 'sm' %}selected{% endif %}>Малий (інфо-блок)</option>
+              <option value="md" {% if block_size == 'md' %}selected{% endif %}>Середній</option>
+              <option value="lg" {% if block_size == 'lg' %}selected{% endif %}>Великий</option>
+            </select>
+          </label>
+
+          <label class="form-field">
+            Розмір кнопки
+            <select class="select" name="button_size">
+              {% set size = promo.button_size if promo else 'md' %}
+              <option value="sm" {% if size == 'sm' %}selected{% endif %}>Маленька</option>
+              <option value="md" {% if size == 'md' %}selected{% endif %}>Середня</option>
+              <option value="lg" {% if size == 'lg' %}selected{% endif %}>Велика</option>
+            </select>
+          </label>
+
+          <label class="form-field">
+            Розташування кнопки
+            {% set position = promo.button_position if promo else 'center' %}
+            <select class="select" name="button_position">
+              <option value="left" {% if position == 'left' %}selected{% endif %}>Ліворуч</option>
+              <option value="center" {% if position == 'center' %}selected{% endif %}>По центру</option>
+              <option value="right" {% if position == 'right' %}selected{% endif %}>Праворуч</option>
+            </select>
+          </label>
+
+          <label class="form-field">
+            Колір кнопки
+            <input class="input" name="button_bg_color" type="text" value="{{ promo.button_bg_color if promo else '#0b5ed7' }}" placeholder="#0b5ed7" />
+          </label>
+
+          <label class="form-field">
+            Колір тексту кнопки
+            <input class="input" name="button_text_color" type="text" value="{{ promo.button_text_color if promo else '#ffffff' }}" placeholder="#ffffff" />
+          </label>
+
+          <label class="form-field">
+            Порядок показу
+            <input class="input" name="sort_order" type="number" min="0" value="{{ promo.sort_order if promo else 0 }}" />
+          </label>
+
+          <label class="form-field" style="display:flex; gap:.5rem; align-items:center;">
+            <input type="checkbox" name="is_active" {% if promo and promo.is_active %}checked{% elif not promo %}checked{% endif %} />
+            Активний блок
+          </label>
+
+          <button class="btn primary" type="submit">{{ 'Зберегти' if promo else 'Створити' }}</button>
+        </form>
+      </div>
+    </div>
+  </section>
+{% endblock %}

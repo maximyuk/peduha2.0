@@ -1,0 +1,67 @@
+{% extends "layout.html" %}
+
+{% block title %}Заявки на курси — ВПФК{% endblock %}
+
+{% block content %}
+  <section class="section">
+    <div class="container admin-shell">
+      <div class="admin-header">
+        <div>
+          <h1>Заявки на курси</h1>
+          <p>Список заявок із форми запису на підготовчі курси.</p>
+        </div>
+        <a class="btn outline" href="{{ url_for('admin_dashboard') }}">Панель</a>
+      </div>
+
+      <div class="table-wrap">
+        <table class="table admin-table">
+          <thead>
+            <tr>
+              <th>Дата</th>
+              <th>ПІБ</th>
+              <th>Де навчалась</th>
+              <th>Скільки років</th>
+              <th>Телефон</th>
+              <th>Telegram</th>
+              <th>Статус</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in applications %}
+              <tr>
+                <td data-label="Дата">{{ item.created_at[:16].replace('T', ' ') if item.created_at else '-' }}</td>
+                <td data-label="ПІБ">{{ item.full_name }}</td>
+                <td data-label="Де навчалась">{{ item.previous_school }}</td>
+                <td data-label="Скільки років">{{ item.study_years }}</td>
+                <td data-label="Телефон">{{ item.phone }}</td>
+                <td data-label="Telegram">{{ item.telegram_username }}</td>
+                <td data-label="Статус">
+                  <form class="inline-status-form" method="post" action="{{ url_for('admin_course_application_status', application_id=item.id) }}">
+                    <input
+                      class="input status-input"
+                      type="text"
+                      name="status"
+                      value="{{ item.status or 'Нова' }}"
+                      list="course-status-options"
+                      placeholder="Статус"
+                    />
+                    <button class="btn outline btn-xs" type="submit">Зберегти</button>
+                  </form>
+                </td>
+              </tr>
+            {% else %}
+              <tr class="table-empty">
+                <td colspan="7">Заявок поки немає.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <datalist id="course-status-options">
+        {% for status_name in status_suggestions %}
+          <option value="{{ status_name }}"></option>
+        {% endfor %}
+      </datalist>
+    </div>
+  </section>
+{% endblock %}

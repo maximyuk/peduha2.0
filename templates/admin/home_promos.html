@@ -1,0 +1,61 @@
+{% extends "layout.html" %}
+
+{% block title %}Промо-блоки головної — ВПФК{% endblock %}
+
+{% block content %}
+  <section class="section">
+    <div class="container admin-shell">
+      <div class="admin-header">
+        <div>
+          <h1>Промо-блоки головної</h1>
+          <p>Керуйте фото, кнопками, кольорами та порядком блоків на головній сторінці.</p>
+        </div>
+        <a class="btn primary" href="{{ url_for('admin_home_promo_new') }}">Додати блок</a>
+      </div>
+
+      <div class="table-wrap">
+        <table class="table admin-table">
+          <thead>
+            <tr>
+              <th>Фото</th>
+              <th>Назва</th>
+              <th>Кнопка</th>
+              <th>Розмір блоку</th>
+              <th>Порядок</th>
+              <th>Статус</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for promo in promos %}
+              <tr>
+                <td class="cell-no-label" data-label="Фото">
+                  {% if promo.image_path %}
+                    <img src="{{ uploads_url(promo.image_path) }}" class="promo-thumb" alt="{{ promo.title }}">
+                  {% else %}
+                    <div class="promo-thumb-placeholder">Немає</div>
+                  {% endif %}
+                </td>
+                <td data-label="Назва">{{ promo.title }}</td>
+                <td data-label="Кнопка">{{ promo.button_text or '-' }}</td>
+                <td data-label="Розмір блоку">{{ promo.block_size or 'md' }}</td>
+                <td data-label="Порядок">{{ promo.sort_order }}</td>
+                <td data-label="Статус">{{ 'Активний' if promo.is_active else 'Вимкнено' }}</td>
+                <td class="table-actions" data-label="Дії">
+                  <a class="link" href="{{ url_for('admin_home_promo_edit', promo_id=promo.id) }}">Редагувати</a>
+                  <form method="post" action="{{ url_for('admin_home_promo_delete', promo_id=promo.id) }}">
+                    <button class="link danger" type="submit">Видалити</button>
+                  </form>
+                </td>
+              </tr>
+            {% else %}
+              <tr class="table-empty">
+                <td colspan="7">Промо-блоків ще немає.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+{% endblock %}

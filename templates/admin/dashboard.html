@@ -13,6 +13,8 @@
         <div class="admin-actions">
           <a class="btn outline" href="{{ url_for('admin_articles') }}">Статті</a>
           <a class="btn outline" href="{{ url_for('admin_menu') }}">Меню</a>
+          <a class="btn outline" href="{{ url_for('admin_home_promos') }}">Промо головної</a>
+          <a class="btn outline" href="{{ url_for('admin_course_applications') }}">Заявки на курси</a>
           {% if current_user and current_user.role in ['owner', 'admin'] %}
             <a class="btn outline" href="{{ url_for('admin_users') }}">Користувачі</a>
           {% endif %}
@@ -29,6 +31,16 @@
           <h3>Меню та підрозділи</h3>
           <p>Редагуйте назви і посилання розділів сайту.</p>
           <a class="link" href="{{ url_for('admin_menu') }}">Керувати меню</a>
+        </div>
+        <div class="admin-card">
+          <h3>Промо головної</h3>
+          <p>Додавайте блоки з фото та налаштованими кнопками для головної сторінки.</p>
+          <a class="link" href="{{ url_for('admin_home_promos') }}">Керувати блоками</a>
+        </div>
+        <div class="admin-card">
+          <h3>Заявки на курси</h3>
+          <p>Перегляд заявок із форми запису для абітурієнтів.</p>
+          <a class="link" href="{{ url_for('admin_course_applications') }}">Переглянути заявки</a>
         </div>
         {% if current_user and current_user.role in ['owner', 'admin'] %}
           <div class="admin-card">

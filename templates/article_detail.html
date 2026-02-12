@@ -12,6 +12,17 @@
           <span class="muted">Подія: {{ article.event_date }}</span>
         {% endif %}
       </div>
+      <div class="article-publish-pill">
+        <span>Опубліковано:</span>
+        {% set author_name = article.author_full_name|trim if article.author_full_name else '' %}
+        {% if article.author_username %}
+          <a href="{{ url_for('user_profile', username=article.author_username) }}">{{ author_name or article.author_username }}</a>
+        {% else %}
+          <span>{{ author_name or 'Користувач' }}</span>
+        {% endif %}
+        <span>·</span>
+        <span>{{ article.created_at[:10] if article.created_at else article.published_date }}</span>
+      </div>
       <h1>{{ article.title }}</h1>
       
       <!-- Featured Image -->
@@ -23,7 +34,10 @@
         </div>
       {% endif %}
       
-      <p class="article-summary">{{ article.summary }}</p>
+      {% set summary_text = article.summary|clean_text %}
+      {% if summary_text %}
+        <p class="article-summary">{{ summary_text }}</p>
+      {% endif %}
       <div class="article-content">
         {{ article.content|sanitize_html|safe }}
       </div>
@@ -46,7 +60,9 @@
         {% endif %}
       {% endif %}
       <div class="article-footer">
-        <span class="muted">{{ article.section_title or 'Без розділу' }}</span>
+        {% if article.section_title %}
+          <span class="muted">{{ article.section_title }}</span>
+        {% endif %}
         <a class="link" href="{{ url_for('articles') }}">До всіх статей</a>
       </div>
     </div>

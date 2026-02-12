@@ -1,0 +1,27 @@
+{% extends "layout.html" %}
+
+{% block title %}Профіль користувача — ВПФК{% endblock %}
+
+{% block content %}
+  <section class="section">
+    <div class="container" style="max-width: 920px;">
+      <div class="admin-card">
+        <h1 style="margin-top: 0;">{{ display_name or profile_user.username }}</h1>
+        <div class="profile-grid">
+          <div><strong>Логін:</strong> {{ profile_user.username }}</div>
+          <div><strong>Роль:</strong> {{ profile_user.role }}</div>
+          <div><strong>Прізвище:</strong> {{ profile_user.last_name|clean_text or '-' }}</div>
+          <div><strong>Ім'я:</strong> {{ profile_user.first_name|clean_text or '-' }}</div>
+          <div><strong>По батькові:</strong> {{ profile_user.middle_name|clean_text or '-' }}</div>
+          <div><strong>Посада:</strong> {{ profile_user.position|clean_text or '-' }}</div>
+        </div>
+        {% if profile_user.profile_text|clean_text %}
+          <h3 style="margin-bottom: .4rem;">Інформація</h3>
+          <p>{{ profile_user.profile_text|clean_text }}</p>
+        {% endif %}
+        <h3 style="margin-bottom: .4rem;">Зареєстрований вже</h3>
+        <p>{{ member_for or '-' }}</p>
+      </div>
+    </div>
+  </section>
+{% endblock %}

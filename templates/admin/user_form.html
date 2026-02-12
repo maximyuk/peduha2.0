@@ -20,6 +20,26 @@
             <input class="input" name="username" type="text" value="{{ user.username if user else '' }}" required />
           </label>
           <label class="form-field">
+            Прізвище
+            <input class="input" name="last_name" type="text" value="{{ user.last_name|clean_text if user else '' }}" />
+          </label>
+          <label class="form-field">
+            Ім'я
+            <input class="input" name="first_name" type="text" value="{{ user.first_name|clean_text if user else '' }}" />
+          </label>
+          <label class="form-field">
+            По батькові
+            <input class="input" name="middle_name" type="text" value="{{ user.middle_name|clean_text if user else '' }}" />
+          </label>
+          <label class="form-field">
+            Посада
+            <input class="input" name="position" type="text" value="{{ user.position|clean_text if user else '' }}" />
+          </label>
+          <label class="form-field">
+            Коротко про користувача
+            <textarea class="textarea" name="profile_text" rows="3">{{ user.profile_text|clean_text if user else '' }}</textarea>
+          </label>
+          <label class="form-field">
             Роль
             <select class="select" name="role">
               {% for role in roles %}

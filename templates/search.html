@@ -1,0 +1,87 @@
+{% extends "layout.html" %}
+
+{% block title %}Пошук — ВПФК{% endblock %}
+
+{% block content %}
+  <section class="section">
+    <div class="container">
+      <div class="section-header">
+        <h1>Пошук</h1>
+      </div>
+
+      <form class="filter-bar" method="get" action="{{ url_for('search') }}">
+        <label class="filter-field">
+          Запит
+          <input class="input" name="q" type="search" value="{{ query }}" placeholder="Введіть текст для пошуку" />
+        </label>
+        <button class="btn outline" type="submit">Знайти</button>
+      </form>
+
+      {% if query %}
+        {% if articles %}
+          <div class="article-list article-grid">
+            {% for article in articles %}
+              <article class="article-card">
+                {% set thumb = article.featured_image %}
+                {% if not thumb and article.image_gallery %}
+                  {% set gallery = article.image_gallery|from_json if article.image_gallery else [] %}
+                  {% if gallery %}
+                    {% set thumb = gallery[0] %}
+                  {% endif %}
+                {% endif %}
+                {% if thumb %}
+                  <a class="article-thumb" href="{{ url_for('article_detail', article_id=article.id) }}">
+                    <img src="{{ uploads_url(thumb) }}" alt="{{ article.title }}">
+                  </a>
+                {% endif %}
+
+                <div class="article-meta">
+                  <span class="badge">{{ article.category }}</span>
+                  <span class="muted">Публікація: {{ article.published_date }}</span>
+                  {% set author_name = article.author_full_name|trim if article.author_full_name else '' %}
+                  {% if article.author_username %}
+                    <span class="muted">
+                      Автор:
+                      <a class="link" href="{{ url_for('user_profile', username=article.author_username) }}">{{ author_name or article.author_username }}</a>
+                    </span>
+                  {% endif %}
+                </div>
+
+                <h3>
+                  <a href="{{ url_for('article_detail', article_id=article.id) }}">{{ article.title }}</a>
+                </h3>
+                {% set summary_text = article.summary|clean_text %}
+                {% if summary_text %}
+                  <p>{{ summary_text }}</p>
+                {% endif %}
+                <div class="article-footer">
+                  {% if article.section_title %}
+                    <span class="muted">{{ article.section_title }}</span>
+                  {% endif %}
+                  <a class="link" href="{{ url_for('article_detail', article_id=article.id) }}">Читати</a>
+                </div>
+              </article>
+            {% endfor %}
+          </div>
+
+          {% if total_pages > 1 %}
+            <div class="pagination">
+              {% for page_num in page_numbers %}
+                <a
+                  class="page-link {% if page_num == current_page %}active{% endif %}"
+                  href="{{ url_for('search', q=query, page=page_num) }}"
+                >
+                  {{ page_num }}
+                </a>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% else %}
+          <div class="empty-state">За запитом “{{ query }}” нічого не знайдено.</div>
+        {% endif %}
+      {% else %}
+        <div class="empty-state">Введіть запит для пошуку по статтях.</div>
+      {% endif %}
+    </div>
+  </section>
+{% endblock %}

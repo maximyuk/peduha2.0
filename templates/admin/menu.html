@@ -14,7 +14,7 @@
       </div>
 
       <div class="table-wrap">
-        <table class="table">
+        <table class="table admin-table">
           <thead>
             <tr>
               <th>Назва</th>
@@ -26,12 +26,12 @@
           <tbody>
             {% for item in items %}
               <tr>
-                <td style="padding-left: {{ item.level * 20 }}px">
+                <td data-label="Назва" class="menu-title-cell" style="--level-indent: {{ item.level * 20 }}px;">
                   {{ item.title }}
                 </td>
-                <td>{{ item.url }}</td>
-                <td>{{ item.sort_order }}</td>
-                <td class="table-actions">
+                <td data-label="Посилання">{{ item.url }}</td>
+                <td data-label="Порядок">{{ item.sort_order }}</td>
+                <td class="table-actions" data-label="Дії">
                   <a class="link" href="{{ url_for('admin_menu_edit', item_id=item.id) }}">Редагувати</a>
                   <form method="post" action="{{ url_for('admin_menu_delete', item_id=item.id) }}">
                     <button class="link danger" type="submit">Видалити</button>
@@ -39,7 +39,7 @@
                 </td>
               </tr>
             {% else %}
-              <tr>
+              <tr class="table-empty">
                 <td colspan="4">Немає пунктів меню.</td>
               </tr>
             {% endfor %}
