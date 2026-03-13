@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 import os
@@ -465,6 +464,16 @@ def init_db() -> None:
         """
     )
 
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS site_settings (
+          key TEXT PRIMARY KEY,
+          value TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        )
+        """
+    )
+
     # Add new columns if they don't exist (for existing databases)
     cursor.execute("PRAGMA table_info(users)")
     user_columns = [column[1] for column in cursor.fetchall()]
@@ -753,6 +762,24 @@ def execute_db(query: str, args: tuple = ()) -> int:
     return last_id
 
 
+def get_site_setting(key: str, default: str = "") -> str:
+    row = query_db("SELECT value FROM site_settings WHERE key = ?", (key,), one=True)
+    if row and row["value"] is not None:
+        return str(row["value"])
+    return default
+
+
+def set_site_setting(key: str, value: str) -> None:
+    timestamp = datetime.now().isoformat()
+    execute_db(
+        """
+        INSERT OR REPLACE INTO site_settings (key, value, updated_at)
+        VALUES (?, ?, ?)
+        """,
+        (key, value, timestamp),
+    )
+
+
 def build_menu_tree(rows: List[sqlite3.Row]) -> List[dict]:
     items: Dict[int, dict] = {}
     roots: List[dict] = []
@@ -917,7 +944,27 @@ def index():
 
 @app.route("/admissions-2026")
 def admissions():
-    return render_template("admissions-2026.html", active_title="Абітурієнту")
+    template_path = get_site_setting("admissions_template_path", "")
+    template_url = uploads_url(template_path) if template_path else ""
+    if not template_url:
+        template_url = get_site_setting("admissions_template_url", "#")
+
+    admissions_settings = {
+        "step1_text": get_site_setting("admissions_step1_text", "Переглянути освітні програми"),
+        "step1_url": get_site_setting("admissions_step1_url", url_for("courses")),
+        "step2_text": get_site_setting("admissions_step2_text", "Переглянути перелік"),
+        "step2_url": get_site_setting("admissions_step2_url", "#documents"),
+        "step3_text": get_site_setting("admissions_step3_text", "Зв'язатися з комісією"),
+        "step3_url": get_site_setting("admissions_step3_url", "#contacts"),
+        "template_text": get_site_setting("admissions_template_text", "Шаблон"),
+        "template_url": template_url,
+    }
+
+    return render_template(
+        "admissions-2026.html",
+        active_title="Абітурієнту",
+        admissions=admissions_settings,
+    )
 
 
 @app.route("/courses")
@@ -1239,6 +1286,89 @@ def logout():
 @login_required
 def admin_dashboard():
     return render_template("admin/dashboard.html", active_title="")
+
+
+@app.route("/admin/admissions-settings", methods=["GET", "POST"])
+@role_required("owner", "admin", "editor")
+def admin_admissions_settings():
+    def normalized(value: Optional[str], fallback: str) -> str:
+        if value is None:
+            return fallback
+        stripped = value.strip()
+        return stripped if stripped else fallback
+
+    if request.method == "POST":
+        step1_text = normalized(request.form.get("step1_text"), "Переглянути освітні програми")
+        step1_url = normalized(request.form.get("step1_url"), url_for("courses"))
+        step2_text = normalized(request.form.get("step2_text"), "Переглянути перелік")
+        step2_url = normalized(request.form.get("step2_url"), "#documents")
+        step3_text = normalized(request.form.get("step3_text"), "Зв'язатися з комісією")
+        step3_url = normalized(request.form.get("step3_url"), "#contacts")
+        template_text = normalized(request.form.get("template_text"), "Шаблон")
+        template_url = normalized(request.form.get("template_url"), "#")
+
+        set_site_setting("admissions_step1_text", step1_text)
+        set_site_setting("admissions_step1_url", step1_url)
+        set_site_setting("admissions_step2_text", step2_text)
+        set_site_setting("admissions_step2_url", step2_url)
+        set_site_setting("admissions_step3_text", step3_text)
+        set_site_setting("admissions_step3_url", step3_url)
+        set_site_setting("admissions_template_text", template_text)
+        set_site_setting("admissions_template_url", template_url)
+
+        remove_template_file = request.form.get("remove_template_file")
+        current_template_path = get_site_setting("admissions_template_path", "")
+
+        if remove_template_file and current_template_path:
+            try:
+                file_path = upload_fs_path(current_template_path)
+                if file_path:
+                    os.remove(file_path)
+            except OSError:
+                pass
+            set_site_setting("admissions_template_path", "")
+
+        template_file = request.files.get("template_file")
+        if template_file and template_file.filename:
+            filename = secure_filename(template_file.filename)
+            ext = os.path.splitext(filename)[1].lower()
+            allowed_ext = {".pdf", ".doc", ".docx"}
+            if ext not in allowed_ext:
+                flash("Дозволені формати: PDF, DOC, DOCX.", "error")
+                return redirect(url_for("admin_admissions_settings"))
+
+            upload_dir = upload_fs_path("admissions")
+            if upload_dir:
+                os.makedirs(upload_dir, exist_ok=True)
+            unique_name = f"{uuid.uuid4().hex}{ext}"
+            rel_path = f"admissions/{unique_name}"
+            upload_path = upload_fs_path(rel_path)
+            if not upload_path:
+                flash("Помилка збереження файлу.", "error")
+                return redirect(url_for("admin_admissions_settings"))
+            template_file.save(upload_path)
+            set_site_setting("admissions_template_path", rel_path)
+
+        flash("Налаштування вступу оновлено.", "success")
+        return redirect(url_for("admin_admissions_settings"))
+
+    template_path = get_site_setting("admissions_template_path", "")
+    template_url = uploads_url(template_path) if template_path else ""
+
+    settings = {
+        "step1_text": get_site_setting("admissions_step1_text", "Переглянути освітні програми"),
+        "step1_url": get_site_setting("admissions_step1_url", url_for("courses")),
+        "step2_text": get_site_setting("admissions_step2_text", "Переглянути перелік"),
+        "step2_url": get_site_setting("admissions_step2_url", "#documents"),
+        "step3_text": get_site_setting("admissions_step3_text", "Зв'язатися з комісією"),
+        "step3_url": get_site_setting("admissions_step3_url", "#contacts"),
+        "template_text": get_site_setting("admissions_template_text", "Шаблон"),
+        "template_url": get_site_setting("admissions_template_url", "#"),
+        "template_path": template_path,
+        "template_download_url": template_url,
+    }
+
+    return render_template("admin/admissions_settings.html", settings=settings, active_title="")
 
 
 @app.route("/admin/home-promos")

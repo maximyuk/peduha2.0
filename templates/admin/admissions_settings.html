@@ -1,0 +1,77 @@
+{% extends "layout.html" %}
+
+{% block title %}Налаштування вступу — ВПФК{% endblock %}
+
+{% block content %}
+  <section class="section">
+    <div class="container admin-shell">
+      <div class="admin-header">
+        <div>
+          <h1>Налаштування вступу</h1>
+          <p>Керуйте посиланнями для кроків вступу та шаблоном заяви.</p>
+        </div>
+        <a class="btn outline" href="{{ url_for('admin_dashboard') }}">Назад</a>
+      </div>
+
+      <div class="admin-card">
+        <form method="post" enctype="multipart/form-data" class="form-grid">
+          <label class="form-field">
+            Текст посилання (Крок 1)
+            <input class="input" name="step1_text" type="text" value="{{ settings.step1_text }}" />
+          </label>
+
+          <label class="form-field">
+            URL посилання (Крок 1)
+            <input class="input" name="step1_url" type="text" value="{{ settings.step1_url }}" placeholder="/courses" />
+          </label>
+
+          <label class="form-field">
+            Текст посилання (Крок 2)
+            <input class="input" name="step2_text" type="text" value="{{ settings.step2_text }}" />
+          </label>
+
+          <label class="form-field">
+            URL посилання (Крок 2)
+            <input class="input" name="step2_url" type="text" value="{{ settings.step2_url }}" placeholder="#documents" />
+          </label>
+
+          <label class="form-field">
+            Текст посилання (Крок 3)
+            <input class="input" name="step3_text" type="text" value="{{ settings.step3_text }}" />
+          </label>
+
+          <label class="form-field">
+            URL посилання (Крок 3)
+            <input class="input" name="step3_url" type="text" value="{{ settings.step3_url }}" placeholder="#contacts" />
+          </label>
+
+          <label class="form-field">
+            Текст кнопки шаблону
+            <input class="input" name="template_text" type="text" value="{{ settings.template_text }}" />
+          </label>
+
+          <label class="form-field">
+            URL кнопки шаблону
+            <input class="input" name="template_url" type="text" value="{{ settings.template_url }}" placeholder="#" />
+          </label>
+
+          <label class="form-field">
+            Файл шаблону (PDF/DOC/DOCX)
+            <input class="input" type="file" name="template_file" accept=".pdf,.doc,.docx" />
+            {% if settings.template_download_url %}
+              <div class="muted">Поточний файл: <a class="link" href="{{ settings.template_download_url }}">завантажити</a></div>
+            {% endif %}
+            {% if settings.template_path %}
+              <label style="display:flex; gap:.5rem; align-items:center; font-weight:500;">
+                <input type="checkbox" name="remove_template_file" value="1" />
+                Видалити поточний файл
+              </label>
+            {% endif %}
+          </label>
+
+          <button class="btn primary" type="submit">Зберегти</button>
+        </form>
+      </div>
+    </div>
+  </section>
+{% endblock %}
