@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import os
-import sqlite3
+import pymysql
+from pymysql.cursors import DictCursor
+from pymysql.err import IntegrityError
 import html
 import re
 from datetime import datetime
@@ -31,7 +33,12 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "data")
-DB_PATH = os.path.join(DATA_DIR, "app.db")
+
+MYSQL_HOST = os.environ.get("MYSQL_HOST", "sql7.freesqldatabase.com")
+MYSQL_PORT = int(os.environ.get("MYSQL_PORT", "3306"))
+MYSQL_USER = os.environ.get("MYSQL_USER", "sql7819972")
+MYSQL_PASSWORD = os.environ.get("MYSQL_PASSWORD", "qfE2vw2tTT")
+MYSQL_DB = os.environ.get("MYSQL_DB", "sql7819972")
 
 DEFAULT_OWNER_USERNAME = "owner"
 DEFAULT_OWNER_PASSWORD = "owner1234"
@@ -286,7 +293,7 @@ def normalize_optional_text(value: str | None) -> str | None:
     return cleaned
 
 
-def user_display_name(row: sqlite3.Row | dict | None) -> str:
+def user_display_name(row: dict | None) -> str:
     if not row:
         return ""
     last_name = (row.get("last_name") if isinstance(row, dict) else row["last_name"]) or ""
@@ -353,10 +360,34 @@ def from_json(value):
     return []
 
 
-def get_db() -> sqlite3.Connection:
+def _ensure_database() -> None:
+    conn = pymysql.connect(
+        host=MYSQL_HOST,
+        port=MYSQL_PORT,
+        user=MYSQL_USER,
+        password=MYSQL_PASSWORD,
+        charset="utf8mb4",
+        autocommit=True,
+    )
+    with conn.cursor() as cursor:
+        cursor.execute(
+            f"CREATE DATABASE IF NOT EXISTS `{MYSQL_DB}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
+        )
+    conn.close()
+
+
+def get_db() -> pymysql.connections.Connection:
     if "db" not in g:
-        conn = sqlite3.connect(DB_PATH)
-        conn.row_factory = sqlite3.Row
+        conn = pymysql.connect(
+            host=MYSQL_HOST,
+            port=MYSQL_PORT,
+            user=MYSQL_USER,
+            password=MYSQL_PASSWORD,
+            database=MYSQL_DB,
+            charset="utf8mb4",
+            cursorclass=DictCursor,
+            autocommit=False,
+        )
         g.db = conn
     return g.db
 
@@ -368,145 +399,187 @@ def close_db(exception: Optional[BaseException]) -> None:
         db.close()
 
 
+def _convert_placeholders(query: str) -> str:
+    out: list[str] = []
+    in_single = False
+    in_double = False
+    escape = False
+    for ch in query:
+        if escape:
+            out.append(ch)
+            escape = False
+            continue
+        if ch == "\\":
+            out.append(ch)
+            escape = True
+            continue
+        if ch == "'" and not in_double:
+            in_single = not in_single
+            out.append(ch)
+            continue
+        if ch == '"' and not in_single:
+            in_double = not in_double
+            out.append(ch)
+            continue
+        if ch == "?" and not in_single and not in_double:
+            out.append("%s")
+            continue
+        out.append(ch)
+    return "".join(out)
+
+
 def init_db() -> None:
     os.makedirs(DATA_DIR, exist_ok=True)
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
+    _ensure_database()
+    conn = pymysql.connect(
+        host=MYSQL_HOST,
+        port=MYSQL_PORT,
+        user=MYSQL_USER,
+        password=MYSQL_PASSWORD,
+        database=MYSQL_DB,
+        charset="utf8mb4",
+        cursorclass=DictCursor,
+        autocommit=False,
+    )
     cursor = conn.cursor()
+    def exec_db(query: str, args: tuple = ()) -> None:
+        cursor.execute(_convert_placeholders(query), args)
 
     cursor.execute(
         """
         CREATE TABLE IF NOT EXISTS users (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          username TEXT UNIQUE NOT NULL,
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          username VARCHAR(191) UNIQUE NOT NULL,
           password_hash TEXT NOT NULL,
-          role TEXT NOT NULL,
+          role VARCHAR(50) NOT NULL,
           last_name TEXT,
           first_name TEXT,
           middle_name TEXT,
           position TEXT,
           profile_text TEXT,
           created_at TEXT NOT NULL
-        )
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         """
     )
 
     cursor.execute(
         """
         CREATE TABLE IF NOT EXISTS menu_items (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          parent_id INTEGER,
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          parent_id INT,
           title TEXT NOT NULL,
           url TEXT NOT NULL,
-          sort_order INTEGER NOT NULL DEFAULT 0,
+          sort_order INT NOT NULL DEFAULT 0,
           FOREIGN KEY(parent_id) REFERENCES menu_items(id)
-        )
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         """
     )
 
     cursor.execute(
         """
         CREATE TABLE IF NOT EXISTS articles (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          id INT AUTO_INCREMENT PRIMARY KEY,
           title TEXT NOT NULL,
           summary TEXT NOT NULL,
           content TEXT NOT NULL,
           category TEXT NOT NULL,
-          section_id INTEGER,
+          section_id INT,
           published_date TEXT NOT NULL,
           event_date TEXT,
           external_link TEXT,
           featured_image TEXT,
           image_gallery TEXT,
-          author_id INTEGER,
+          author_id INT,
           created_at TEXT NOT NULL,
           updated_at TEXT NOT NULL,
           FOREIGN KEY(author_id) REFERENCES users(id),
           FOREIGN KEY(section_id) REFERENCES menu_items(id)
-        )
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         """
     )
 
     cursor.execute(
         """
         CREATE TABLE IF NOT EXISTS course_applications (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          id INT AUTO_INCREMENT PRIMARY KEY,
           full_name TEXT NOT NULL,
           previous_school TEXT NOT NULL,
           study_years TEXT NOT NULL,
           phone TEXT NOT NULL,
           telegram_username TEXT NOT NULL,
-          status TEXT NOT NULL DEFAULT 'Нова',
+          status VARCHAR(32) NOT NULL DEFAULT 'Нова',
           created_at TEXT NOT NULL
-        )
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         """
     )
 
     cursor.execute(
         """
         CREATE TABLE IF NOT EXISTS home_promos (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          id INT AUTO_INCREMENT PRIMARY KEY,
           title TEXT NOT NULL,
           description TEXT,
           image_path TEXT,
-          block_size TEXT NOT NULL DEFAULT 'md',
-          button_text TEXT,
-          button_url TEXT NOT NULL DEFAULT '#',
-          button_size TEXT NOT NULL DEFAULT 'md',
-          button_bg_color TEXT NOT NULL DEFAULT '#0b5ed7',
-          button_text_color TEXT NOT NULL DEFAULT '#ffffff',
-          button_position TEXT NOT NULL DEFAULT 'center',
-          sort_order INTEGER NOT NULL DEFAULT 0,
-          is_active INTEGER NOT NULL DEFAULT 1,
+          block_size VARCHAR(10) NOT NULL DEFAULT 'md',
+          button_text VARCHAR(255),
+          button_url VARCHAR(255) NOT NULL DEFAULT '#',
+          button_size VARCHAR(10) NOT NULL DEFAULT 'md',
+          button_bg_color VARCHAR(20) NOT NULL DEFAULT '#0b5ed7',
+          button_text_color VARCHAR(20) NOT NULL DEFAULT '#ffffff',
+          button_position VARCHAR(20) NOT NULL DEFAULT 'center',
+          sort_order INT NOT NULL DEFAULT 0,
+          is_active TINYINT(1) NOT NULL DEFAULT 1,
           created_at TEXT NOT NULL,
           updated_at TEXT NOT NULL
-        )
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         """
     )
 
     cursor.execute(
         """
         CREATE TABLE IF NOT EXISTS site_settings (
-          key TEXT PRIMARY KEY,
+          `key` VARCHAR(191) PRIMARY KEY,
           value TEXT NOT NULL,
           updated_at TEXT NOT NULL
-        )
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         """
     )
 
     # Add new columns if they don't exist (for existing databases)
-    cursor.execute("PRAGMA table_info(users)")
-    user_columns = [column[1] for column in cursor.fetchall()]
-    if "last_name" not in user_columns:
+    def column_exists(table_name: str, column_name: str) -> bool:
+        cursor.execute(
+            """
+            SELECT COUNT(*) AS cnt
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s AND COLUMN_NAME = %s
+            """,
+            (MYSQL_DB, table_name, column_name),
+        )
+        row = cursor.fetchone()
+        return bool(row and row["cnt"])
+
+    if not column_exists("users", "last_name"):
         cursor.execute("ALTER TABLE users ADD COLUMN last_name TEXT")
-    if "first_name" not in user_columns:
+    if not column_exists("users", "first_name"):
         cursor.execute("ALTER TABLE users ADD COLUMN first_name TEXT")
-    if "middle_name" not in user_columns:
+    if not column_exists("users", "middle_name"):
         cursor.execute("ALTER TABLE users ADD COLUMN middle_name TEXT")
-    if "position" not in user_columns:
+    if not column_exists("users", "position"):
         cursor.execute("ALTER TABLE users ADD COLUMN position TEXT")
-    if "profile_text" not in user_columns:
+    if not column_exists("users", "profile_text"):
         cursor.execute("ALTER TABLE users ADD COLUMN profile_text TEXT")
 
-    cursor.execute("PRAGMA table_info(articles)")
-    columns = [column[1] for column in cursor.fetchall()]
-    
-    if 'featured_image' not in columns:
+    if not column_exists("articles", "featured_image"):
         cursor.execute("ALTER TABLE articles ADD COLUMN featured_image TEXT")
-    
-    if 'image_gallery' not in columns:
+    if not column_exists("articles", "image_gallery"):
         cursor.execute("ALTER TABLE articles ADD COLUMN image_gallery TEXT")
-    if "author_id" not in columns:
-        cursor.execute("ALTER TABLE articles ADD COLUMN author_id INTEGER")
+    if not column_exists("articles", "author_id"):
+        cursor.execute("ALTER TABLE articles ADD COLUMN author_id INT")
 
-    cursor.execute("PRAGMA table_info(home_promos)")
-    promo_columns = [column[1] for column in cursor.fetchall()]
-    if "block_size" not in promo_columns:
-        cursor.execute("ALTER TABLE home_promos ADD COLUMN block_size TEXT NOT NULL DEFAULT 'md'")
-    cursor.execute("PRAGMA table_info(course_applications)")
-    course_columns = [column[1] for column in cursor.fetchall()]
-    if "status" not in course_columns:
-        cursor.execute("ALTER TABLE course_applications ADD COLUMN status TEXT NOT NULL DEFAULT 'Нова'")
+    if not column_exists("home_promos", "block_size"):
+        cursor.execute("ALTER TABLE home_promos ADD COLUMN block_size VARCHAR(10) NOT NULL DEFAULT 'md'")
+    if not column_exists("course_applications", "status"):
+        cursor.execute("ALTER TABLE course_applications ADD COLUMN status VARCHAR(32) NOT NULL DEFAULT 'Нова'")
 
     # Cleanup legacy values where the string "None" was stored as text.
     cursor.execute(
@@ -559,9 +632,10 @@ def init_db() -> None:
         """
     )
 
-    cursor.execute("SELECT COUNT(*) FROM users")
-    if cursor.fetchone()[0] == 0:
-        cursor.execute(
+    cursor.execute("SELECT COUNT(*) AS total FROM users")
+    row = cursor.fetchone()
+    if row and row["total"] == 0:
+        exec_db(
             """
             INSERT INTO users (username, password_hash, role, created_at)
             VALUES (?, ?, ?, ?)
@@ -574,8 +648,9 @@ def init_db() -> None:
             ),
         )
 
-    cursor.execute("SELECT COUNT(*) FROM menu_items")
-    if cursor.fetchone()[0] == 0:
+    cursor.execute("SELECT COUNT(*) AS total FROM menu_items")
+    row = cursor.fetchone()
+    if row and row["total"] == 0:
         top_items = [
             ("Головна", "/", 1),
             ("Коледж", "#", 2),
@@ -589,7 +664,7 @@ def init_db() -> None:
 
         top_ids: Dict[str, int] = {}
         for title, url, sort_order in top_items:
-            cursor.execute(
+            exec_db(
                 """
                 INSERT INTO menu_items (parent_id, title, url, sort_order)
                 VALUES (?, ?, ?, ?)
@@ -601,7 +676,7 @@ def init_db() -> None:
         def add_children(parent_title: str, items: List[str]) -> None:
             parent_id = top_ids[parent_title]
             for idx, label in enumerate(items, start=1):
-                cursor.execute(
+                exec_db(
                     """
                     INSERT INTO menu_items (parent_id, title, url, sort_order)
                     VALUES (?, ?, ?, ?)
@@ -692,7 +767,7 @@ def slugify_uk(text: str) -> str:
     return slug.strip("-")
 
 
-def ensure_menu_urls(cursor: sqlite3.Cursor) -> None:
+def ensure_menu_urls(cursor) -> None:
     cursor.execute("SELECT id, parent_id, title, url FROM menu_items")
     rows = cursor.fetchall()
 
@@ -724,18 +799,17 @@ def ensure_menu_urls(cursor: sqlite3.Cursor) -> None:
         title = row["title"]
         url = (row["url"] or "").strip()
 
-        # Студенту розділи повинні бути розділами зі статтями (/section/...), а не сторінками
         if item_id in student_ids_set:
             if not url or url == "#" or url.startswith("/page/"):
                 cursor.execute(
-                    "UPDATE menu_items SET url = ? WHERE id = ?",
+                    _convert_placeholders("UPDATE menu_items SET url = ? WHERE id = ?"),
                     (f"/section/{item_id}", item_id),
                 )
             continue
 
         if not url or url == "#":
             cursor.execute(
-                "UPDATE menu_items SET url = ? WHERE id = ?",
+                _convert_placeholders("UPDATE menu_items SET url = ? WHERE id = ?"),
                 (f"/section/{item_id}", item_id),
             )
 
@@ -745,9 +819,9 @@ init_db()
 
 def query_db(query: str, args: tuple = (), one: bool = False):
     db = get_db()
-    cursor = db.execute(query, args)
-    rows = cursor.fetchall()
-    cursor.close()
+    with db.cursor() as cursor:
+        cursor.execute(_convert_placeholders(query), args)
+        rows = cursor.fetchall()
     if one:
         return rows[0] if rows else None
     return rows
@@ -755,15 +829,15 @@ def query_db(query: str, args: tuple = (), one: bool = False):
 
 def execute_db(query: str, args: tuple = ()) -> int:
     db = get_db()
-    cursor = db.execute(query, args)
-    db.commit()
-    last_id = cursor.lastrowid
-    cursor.close()
+    with db.cursor() as cursor:
+        cursor.execute(_convert_placeholders(query), args)
+        db.commit()
+        last_id = cursor.lastrowid
     return last_id
 
 
 def get_site_setting(key: str, default: str = "") -> str:
-    row = query_db("SELECT value FROM site_settings WHERE key = ?", (key,), one=True)
+    row = query_db("SELECT value FROM site_settings WHERE `key` = ?", (key,), one=True)
     if row and row["value"] is not None:
         return str(row["value"])
     return default
@@ -773,14 +847,15 @@ def set_site_setting(key: str, value: str) -> None:
     timestamp = datetime.now().isoformat()
     execute_db(
         """
-        INSERT OR REPLACE INTO site_settings (key, value, updated_at)
+        INSERT INTO site_settings (`key`, value, updated_at)
         VALUES (?, ?, ?)
+        ON DUPLICATE KEY UPDATE value = VALUES(value), updated_at = VALUES(updated_at)
         """,
         (key, value, timestamp),
     )
 
 
-def build_menu_tree(rows: List[sqlite3.Row]) -> List[dict]:
+def build_menu_tree(rows: List[dict]) -> List[dict]:
     items: Dict[int, dict] = {}
     roots: List[dict] = []
 
@@ -908,7 +983,7 @@ def creatable_roles(user_role: str) -> List[str]:
     return []
 
 
-def can_manage_user(actor: sqlite3.Row, target: sqlite3.Row) -> bool:
+def can_manage_user(actor: dict, target: dict) -> bool:
     if actor["role"] == "owner":
         return True
     if actor["role"] == "admin" and target["role"] == "editor":
@@ -930,7 +1005,7 @@ def index():
         """
         SELECT articles.*, menu_items.title AS section_title,
                users.username AS author_username,
-               TRIM(COALESCE(users.last_name, '') || ' ' || COALESCE(users.first_name, '') || ' ' || COALESCE(users.middle_name, '')) AS author_full_name
+               TRIM(CONCAT_WS(' ', COALESCE(users.last_name, ''), COALESCE(users.first_name, ''), COALESCE(users.middle_name, ''))) AS author_full_name
         FROM articles
         LEFT JOIN menu_items ON menu_items.id = articles.section_id
         LEFT JOIN users ON users.id = articles.author_id
@@ -1105,7 +1180,7 @@ def articles():
     query = """
         SELECT articles.*, menu_items.title AS section_title,
                users.username AS author_username,
-               TRIM(COALESCE(users.last_name, '') || ' ' || COALESCE(users.first_name, '') || ' ' || COALESCE(users.middle_name, '')) AS author_full_name
+               TRIM(CONCAT_WS(' ', COALESCE(users.last_name, ''), COALESCE(users.first_name, ''), COALESCE(users.middle_name, ''))) AS author_full_name
         FROM articles
         LEFT JOIN menu_items ON menu_items.id = articles.section_id
         LEFT JOIN users ON users.id = articles.author_id
@@ -1162,7 +1237,7 @@ def search():
     base_query = """
         SELECT articles.*, menu_items.title AS section_title,
                users.username AS author_username,
-               TRIM(COALESCE(users.last_name, '') || ' ' || COALESCE(users.first_name, '') || ' ' || COALESCE(users.middle_name, '')) AS author_full_name
+               TRIM(CONCAT_WS(' ', COALESCE(users.last_name, ''), COALESCE(users.first_name, ''), COALESCE(users.middle_name, ''))) AS author_full_name
         FROM articles
         LEFT JOIN menu_items ON menu_items.id = articles.section_id
         LEFT JOIN users ON users.id = articles.author_id
@@ -1214,7 +1289,7 @@ def article_detail(article_id: int):
         """
         SELECT articles.*, menu_items.title AS section_title,
                users.username AS author_username,
-               TRIM(COALESCE(users.last_name, '') || ' ' || COALESCE(users.first_name, '') || ' ' || COALESCE(users.middle_name, '')) AS author_full_name
+               TRIM(CONCAT_WS(' ', COALESCE(users.last_name, ''), COALESCE(users.first_name, ''), COALESCE(users.middle_name, ''))) AS author_full_name
         FROM articles
         LEFT JOIN menu_items ON menu_items.id = articles.section_id
         LEFT JOIN users ON users.id = articles.author_id
@@ -1638,7 +1713,7 @@ def admin_user_new():
                 )
                 flash("Користувача створено.", "success")
                 return redirect(url_for("admin_users"))
-            except sqlite3.IntegrityError:
+            except IntegrityError:
                 flash("Такий логін уже існує.", "error")
     return render_template("admin/user_form.html", roles=roles, user=None, active_title="")
 
@@ -2019,5 +2094,7 @@ def admin_article_delete(article_id: int):
     return redirect(url_for("admin_articles"))
 
 
+
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host="0.0.0.0", port=port, debug=False)
