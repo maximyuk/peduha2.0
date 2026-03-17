@@ -15,7 +15,7 @@
           <a class="btn outline" href="{{ url_for('admin_menu') }}">Меню</a>
           <a class="btn outline" href="{{ url_for('admin_home_promos') }}">Промо головної</a>
           <a class="btn outline" href="{{ url_for('admin_course_applications') }}">Заявки на курси</a>
-          <a class="btn outline" href="{{ url_for('admin_admissions_settings') }}">Вступ-2026</a>
+          <!-- <a class="btn outline" href="{{ url_for('admin_admissions_settings') }}">Вступ-2026</a> -->
           {% if current_user and current_user.role in ['owner', 'admin'] %}
             <a class="btn outline" href="{{ url_for('admin_users') }}">Користувачі</a>
           {% endif %}
@@ -43,15 +43,16 @@
           <p>Перегляд заявок із форми запису для абітурієнтів.</p>
           <a class="link" href="{{ url_for('admin_course_applications') }}">Переглянути заявки</a>
         </div>
-        <div class="admin-card">
+
+        <!-- <div class="admin-card">
           <h3>Вступ-2026</h3>
           <p>Керуйте посиланнями кроків та файлом шаблону заяви.</p>
           <a class="link" href="{{ url_for('admin_admissions_settings') }}">Налаштувати вступ</a>
-        </div>
+        </div> -->
         {% if current_user and current_user.role in ['owner', 'admin'] %}
           <div class="admin-card">
             <h3>Користувачі</h3>
-            <p>Власник створює адмінів і редакторів, адміністратор — редакторів.</p>
+            <p>Редагування та створення користувачів</p>
             <a class="link" href="{{ url_for('admin_users') }}">Керувати користувачами</a>
           </div>
         {% endif %}

@@ -18,7 +18,6 @@
         <div class="container topbar-inner">
           <span class="topbar-note">Офіційний сайт коледжу</span>
           <div class="topbar-actions">
-            <button class="chip" type="button">UA</button>
             <a class="chip ghost" href="{{ url_for('search') }}">Пошук</a>
             {% if current_user %}
               <a class="chip ghost" href="{{ url_for('admin_dashboard') }}">Панель</a>

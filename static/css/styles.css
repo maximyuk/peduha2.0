@@ -43,6 +43,7 @@ body {
   width: 100%;
 }
 
+
 img {
   max-width: 100%;
   display: block;
@@ -2740,6 +2741,7 @@ p {
     transform: translateY(0);
   }
 }
+
 
 
 
