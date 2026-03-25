@@ -1,0 +1,69 @@
+{% extends "layout.html" %}
+
+{% block title %}База даних — ВПФК{% endblock %}
+
+{% block content %}
+  <section class="section">
+    <div class="container admin-shell">
+      <div class="admin-header">
+        <div>
+          <h1>База даних</h1>
+          <p>Перегляд таблиць SQLite в режимі лише читання. Показано до {{ preview_limit }} останніх записів.</p>
+        </div>
+        <a class="btn outline" href="{{ url_for('admin_dashboard') }}">Панель</a>
+      </div>
+
+      <div class="admin-actions">
+        {% for table in tables %}
+          <a
+            class="btn {% if table == selected_table %}primary{% else %}outline{% endif %}"
+            href="{{ url_for('admin_database', table_name=table) }}"
+          >
+            {{ table }}
+          </a>
+        {% else %}
+          <span class="muted">Таблиць не знайдено.</span>
+        {% endfor %}
+      </div>
+
+      {% if selected_table %}
+        <div class="admin-card" style="margin-top: 1.5rem;">
+          <h3>{{ selected_table }}</h3>
+          <p>Колонки: {{ columns|join(", ") }}</p>
+        </div>
+
+        <div class="table-wrap" style="margin-top: 1rem;">
+          <table class="table admin-table">
+            <thead>
+              <tr>
+                {% for column in columns %}
+                  <th>{{ column }}</th>
+                {% endfor %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in rows %}
+                <tr>
+                  {% for column in columns %}
+                    {% set value = row[column] %}
+                    <td data-label="{{ column }}">
+                      {% if value is none %}
+                        —
+                      {% else %}
+                        {{ value|string|truncate(120, True, "…") }}
+                      {% endif %}
+                    </td>
+                  {% endfor %}
+                </tr>
+              {% else %}
+                <tr class="table-empty">
+                  <td colspan="{{ columns|length if columns else 1 }}">У таблиці поки немає записів.</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endif %}
+    </div>
+  </section>
+{% endblock %}

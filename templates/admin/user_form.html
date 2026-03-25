@@ -20,6 +20,10 @@
             <input class="input" name="username" type="text" value="{{ user.username if user else '' }}" required />
           </label>
           <label class="form-field">
+            Email
+            <input class="input" name="email" type="email" value="{{ user.email|clean_text if user else '' }}" />
+          </label>
+          <label class="form-field">
             Прізвище
             <input class="input" name="last_name" type="text" value="{{ user.last_name|clean_text if user else '' }}" />
           </label>

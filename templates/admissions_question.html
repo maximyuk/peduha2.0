@@ -1,0 +1,71 @@
+{% extends "layout.html" %}
+
+{% block title %}Написати запитання — ВПФК{% endblock %}
+
+{% block content %}
+  <section class="hero hero-inner">
+    <div class="hero-overlay"></div>
+    <div class="container hero-content">
+      <div class="hero-badge">Приймальна комісія</div>
+      <h1>Написати запитання</h1>
+      <p>Залиште контакт і ваше запитання. Приймальна комісія відповість вам якнайшвидше.</p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container" style="max-width: 860px;">
+      <div class="admin-card">
+        <form method="post" class="form-grid">
+          <label class="form-field">
+            Ім'я та прізвище
+            <input
+              class="input"
+              name="full_name"
+              type="text"
+              value="{{ form_data.full_name }}"
+              required
+            />
+          </label>
+
+          <label class="form-field">
+            Телефон
+            <input
+              class="input"
+              name="phone"
+              type="tel"
+              value="{{ form_data.phone }}"
+              placeholder="+380..."
+            />
+          </label>
+
+          <label class="form-field">
+            Email
+            <input
+              class="input"
+              name="email"
+              type="email"
+              value="{{ form_data.email }}"
+              placeholder="name@example.com"
+            />
+          </label>
+
+          <label class="form-field" style="grid-column: 1 / -1;">
+            Ваше запитання
+            <textarea
+              class="textarea"
+              name="question"
+              rows="7"
+              required
+              placeholder="Напишіть, що саме вас цікавить щодо вступу, документів, термінів або навчання."
+            >{{ form_data.question }}</textarea>
+          </label>
+
+          <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+            <button class="btn primary" type="submit">Надіслати запитання</button>
+            <a class="btn outline" href="{{ url_for('admissions') }}">Назад до вступу</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </section>
+{% endblock %}

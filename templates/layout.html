@@ -30,7 +30,7 @@
       </div>
 
 <div class="container nav-wrapper">
-        <div class="brand">
+        <a class="brand brand-link" href="{{ url_for('index') }}" aria-label="Перейти на головну сторінку">
           <div class="logo-mark is-fallback">
             <img
               src="{{ url_for('static', filename='images/logo.png') }}"
@@ -47,7 +47,7 @@
               Кримського Волинської обласної ради</span
             >
           </div>
-        </div>
+        </a>
         <!-- Desktop Navigation -->
         <nav class="site-nav desktop-nav" id="site-nav" data-nav>
           {% from "_menu.html" import render_menu %}
@@ -110,16 +110,16 @@
     <footer class="site-footer">
       <div class="container footer-grid">
         <div>
-          <div class="brand footer-brand">
+          <a class="brand footer-brand brand-link" href="{{ url_for('index') }}" aria-label="Перейти на головну сторінку">
             <div class="logo-mark is-fallback">
-            <img
-              src="{{ url_for('static', filename='images/logo.png') }}"
-              alt="??????? ????"
-              onload="this.closest('.logo-mark').classList.remove('is-fallback')"
-              onerror="if(!this.dataset.fallback){this.dataset.fallback='1'; this.src='/images/logo.png'; return;} this.closest('.logo-mark').classList.add('is-fallback'); this.remove();"
-            />
-            <span class="logo-fallback">????</span>
-          </div>
+              <img
+                src="{{ url_for('static', filename='images/logo.png') }}"
+                alt="??????? ????"
+                onload="this.closest('.logo-mark').classList.remove('is-fallback')"
+                onerror="if(!this.dataset.fallback){this.dataset.fallback='1'; this.src='/images/logo.png'; return;} this.closest('.logo-mark').classList.add('is-fallback'); this.remove();"
+              />
+              <span class="logo-fallback">????</span>
+            </div>
             <div class="brand-text">
               <span class="brand-title">ВПФК</span>
               <span class="brand-subtitle"
@@ -127,7 +127,7 @@
                 Кримського Волинської обласної ради</span
               >
             </div>
-          </div>
+          </a>
           <p class="footer-note">
             Адреса: вул. Устилузька, м. Володимир · Тел: +38(033)4235555
           </p>

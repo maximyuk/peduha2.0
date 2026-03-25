@@ -15,6 +15,10 @@
           <a class="btn outline" href="{{ url_for('admin_menu') }}">Меню</a>
           <a class="btn outline" href="{{ url_for('admin_home_promos') }}">Промо головної</a>
           <a class="btn outline" href="{{ url_for('admin_course_applications') }}">Заявки на курси</a>
+          <a class="btn outline" href="{{ url_for('admin_admission_questions') }}">Запитання вступників</a>
+          {% if current_user and current_user.role in ['owner', 'admin'] %}
+            <a class="btn outline" href="{{ url_for('admin_database') }}">База даних</a>
+          {% endif %}
           <!-- <a class="btn outline" href="{{ url_for('admin_admissions_settings') }}">Вступ-2026</a> -->
           {% if current_user and current_user.role in ['owner', 'admin'] %}
             <a class="btn outline" href="{{ url_for('admin_users') }}">Користувачі</a>
@@ -43,6 +47,18 @@
           <p>Перегляд заявок із форми запису для абітурієнтів.</p>
           <a class="link" href="{{ url_for('admin_course_applications') }}">Переглянути заявки</a>
         </div>
+        <div class="admin-card">
+          <h3>Запитання вступників</h3>
+          <p>Повідомлення з форми "Написати запитання" зі сторінки вступу.</p>
+          <a class="link" href="{{ url_for('admin_admission_questions') }}">Переглянути запитання</a>
+        </div>
+        {% if current_user and current_user.role in ['owner', 'admin'] %}
+          <div class="admin-card">
+            <h3>База даних</h3>
+            <p>Перегляд таблиць SQLite прямо в адмінці без редагування записів.</p>
+            <a class="link" href="{{ url_for('admin_database') }}">Відкрити таблиці</a>
+          </div>
+        {% endif %}
 
         <!-- <div class="admin-card">
           <h3>Вступ-2026</h3>

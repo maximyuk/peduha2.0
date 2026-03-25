@@ -129,3 +129,45 @@ window.addEventListener("resize", () => {
 });
 
 
+
+
+// Scroll reveal animations
+const revealSelectors = [
+  ".hero-main",
+  ".hero-side",
+  ".info-card",
+  ".cta-stack",
+  ".promo-card",
+  ".article-card",
+  ".admin-card",
+  ".page-content",
+  ".empty-state",
+  ".flash",
+  ".table-wrap"
+];
+
+const revealItems = document.querySelectorAll(revealSelectors.join(", "));
+if ("IntersectionObserver" in window && revealItems.length) {
+  const revealObserver = new IntersectionObserver(
+    (entries, observer) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("is-visible");
+          observer.unobserve(entry.target);
+        }
+      });
+    },
+    {
+      threshold: 0.14,
+      rootMargin: "0px 0px -40px 0px",
+    }
+  );
+
+  revealItems.forEach((item, index) => {
+    item.classList.add("reveal-on-scroll");
+    item.style.transitionDelay = `${Math.min(index * 45, 220)}ms`;
+    revealObserver.observe(item);
+  });
+} else {
+  revealItems.forEach((item) => item.classList.add("is-visible"));
+}

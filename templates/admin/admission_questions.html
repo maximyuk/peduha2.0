@@ -1,0 +1,74 @@
+{% extends "layout.html" %}
+
+{% block title %}Запитання вступників — ВПФК{% endblock %}
+
+{% block content %}
+  <section class="section">
+    <div class="container admin-shell">
+      <div class="admin-header">
+        <div>
+          <h1>Запитання вступників</h1>
+          <p>Повідомлення, які надійшли з форми "Написати запитання".</p>
+        </div>
+        <a class="btn outline" href="{{ url_for('admin_dashboard') }}">Панель</a>
+      </div>
+
+      <div class="table-wrap">
+        <table class="table admin-table">
+          <thead>
+            <tr>
+              <th>Дата</th>
+              <th>Ім'я</th>
+              <th>Контакти</th>
+              <th>Запитання</th>
+              <th>Статус</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in questions %}
+              <tr>
+                <td data-label="Дата">{{ item.created_at[:16].replace('T', ' ') if item.created_at else '-' }}</td>
+                <td data-label="Ім'я">{{ item.full_name }}</td>
+                <td data-label="Контакти">
+                  {% if item.phone %}
+                    <div>{{ item.phone }}</div>
+                  {% endif %}
+                  {% if item.email %}
+                    <div>{{ item.email }}</div>
+                  {% endif %}
+                  {% if not item.phone and not item.email %}
+                    <span class="muted">Не вказано</span>
+                  {% endif %}
+                </td>
+                <td data-label="Запитання">{{ item.question }}</td>
+                <td data-label="Статус">
+                  <form class="inline-status-form" method="post" action="{{ url_for('admin_admission_question_status', question_id=item.id) }}">
+                    <input
+                      class="input status-input"
+                      type="text"
+                      name="status"
+                      value="{{ item.status or 'Нове' }}"
+                      list="admission-question-status-options"
+                      placeholder="Статус"
+                    />
+                    <button class="btn outline btn-xs" type="submit">Зберегти</button>
+                  </form>
+                </td>
+              </tr>
+            {% else %}
+              <tr class="table-empty">
+                <td colspan="5">Запитань поки немає.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <datalist id="admission-question-status-options">
+        {% for status_name in status_suggestions %}
+          <option value="{{ status_name }}"></option>
+        {% endfor %}
+      </datalist>
+    </div>
+  </section>
+{% endblock %}
