@@ -1,15 +1,15 @@
-# fly.toml app configuration file generated for vvpc2-0 on 2026-03-13T22:34:26+02:00
+# fly.toml app configuration file generated for vvpc on 2026-03-25T14:39:38Z
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'vvpc2-0'
-primary_region = 'fra'
+app = 'vvpc'
+primary_region = 'ams'
 
 [build]
 
 [http_service]
-  internal_port = 5000
+  internal_port = 8080
   force_https = true
   auto_stop_machines = 'stop'
   auto_start_machines = true
@@ -18,5 +18,6 @@ primary_region = 'fra'
 
 [[vm]]
   memory = '1gb'
+  cpu_kind = 'shared'
   cpus = 1
   memory_mb = 1024
