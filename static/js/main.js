@@ -96,6 +96,12 @@ function renderMobileMenu() {
 // Mobile menu toggle
 if (mobileMenuToggle && mobileMenuOverlay) {
   mobileMenuToggle.addEventListener("click", () => {
+    const isOpen = mobileMenuOverlay.classList.contains("is-open");
+    if (isOpen) {
+      mobileMenuOverlay.classList.remove("is-open");
+      document.body.style.overflow = "";
+      return;
+    }
     renderMobileMenu();
     mobileMenuOverlay.classList.add("is-open");
     document.body.style.overflow = "hidden";
@@ -139,6 +145,7 @@ const revealSelectors = [
   ".cta-stack",
   ".promo-card",
   ".article-card",
+  ".graduate-review-tile",
   ".admin-card",
   ".page-content",
   ".empty-state",
