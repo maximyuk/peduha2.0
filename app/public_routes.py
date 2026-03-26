@@ -14,6 +14,7 @@ from app.core import (
     BASE_DIR,
     UPLOAD_FOLDER,
     app,
+    allowed_document,
     allowed_file,
     allowed_pdf,
     execute_db,
@@ -29,6 +30,33 @@ from app.core import (
     uploads_url,
     user_display_name,
 )
+
+def _graduate_review_initials(full_name: str) -> str:
+    parts = [part for part in full_name.split() if part]
+    if not parts:
+        return "??"
+    if len(parts) == 1:
+        return parts[0][:2].upper()
+    return f"{parts[0][0]}{parts[1][0]}".upper()
+
+
+def get_graduate_reviews(limit: int | None = None):
+    query = """
+        SELECT *
+        FROM graduate_reviews
+        WHERE is_published = 1
+        ORDER BY sort_order ASC, id DESC
+    """
+    params: tuple = ()
+    if limit:
+        query += " LIMIT ?"
+        params = (limit,)
+
+    reviews = query_db(query, params)
+    for review in reviews:
+        review["initials"] = _graduate_review_initials(review["full_name"])
+    return reviews
+
 
 @app.route("/")
 def index():
@@ -53,7 +81,13 @@ def index():
         LIMIT 3
         """
     )
-    return render_template("index.html", active_title="Головна", articles=articles, promos=promos)
+    return render_template(
+        "index.html",
+        active_title="Головна",
+        articles=articles,
+        promos=promos,
+        graduate_reviews=get_graduate_reviews(6),
+    )
 
 
 @app.route("/admissions-2026")
@@ -84,6 +118,56 @@ def admissions():
 @app.route("/courses")
 def courses():
     return render_template("courses.html", active_title="")
+
+
+@app.route("/public-offer")
+def public_offer():
+    return render_template("public_offer.html", active_title="")
+
+
+@app.route("/graduates-reviews")
+def graduates_reviews():
+    return render_template(
+        "graduates_reviews.html",
+        active_title="Відгуки випускників",
+        graduate_reviews=get_graduate_reviews(),
+    )
+
+
+@app.route("/graduates-reviews/<int:review_id>")
+def graduate_review_detail(review_id: int):
+    review = query_db(
+        """
+        SELECT *
+        FROM graduate_reviews
+        WHERE id = ? AND is_published = 1
+        """,
+        (review_id,),
+        one=True,
+    )
+    if not review:
+        abort(404)
+
+    review["initials"] = _graduate_review_initials(review["full_name"])
+    other_reviews = query_db(
+        """
+        SELECT id, full_name, photo_path
+        FROM graduate_reviews
+        WHERE is_published = 1 AND id <> ?
+        ORDER BY sort_order ASC, id DESC
+        LIMIT 3
+        """,
+        (review_id,),
+    )
+    for item in other_reviews:
+        item["initials"] = _graduate_review_initials(item["full_name"])
+
+    return render_template(
+        "graduate_review_detail.html",
+        active_title="Відгуки випускників",
+        review=review,
+        other_reviews=other_reviews,
+    )
 
 
 @app.route("/courses/apply", methods=["GET", "POST"])
@@ -408,18 +492,19 @@ def uploaded_files(filename: str):
     return send_from_directory(uploads_dir, filename)
 
 
+@app.route("/admin/uploads/document", methods=["POST"])
 @app.route("/admin/uploads/pdf", methods=["POST"])
 @role_required("owner", "admin", "editor")
-def admin_upload_pdf():
-    file = request.files.get("pdf")
+def admin_upload_document():
+    file = request.files.get("document") or request.files.get("pdf")
     if not file or not file.filename:
-        return jsonify({"error": "PDF file missing"}), 400
-    if not allowed_pdf(file.filename):
-        return jsonify({"error": "Only .pdf allowed"}), 400
+        return jsonify({"error": "File missing"}), 400
+    if not (allowed_pdf(file.filename) or allowed_document(file.filename)):
+        return jsonify({"error": "Unsupported file type"}), 400
 
     filename = secure_filename(file.filename)
     unique_filename = f"{uuid.uuid4().hex}_{filename}"
-    rel_path = f"articles/pdfs/{unique_filename}"
+    rel_path = f"articles/documents/{unique_filename}"
     upload_path = upload_fs_path(rel_path)
     if not upload_path:
         return jsonify({"error": "Upload path error"}), 500

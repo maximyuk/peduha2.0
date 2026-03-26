@@ -1,0 +1,72 @@
+﻿{% extends "layout.html" %}
+
+{% block title %}{{ review.full_name }} — ВПФК{% endblock %}
+
+{% block content %}
+  <section class="section">
+    <div class="container article-detail graduate-review-detail">
+      <div class="article-meta">
+        <span class="badge">Відгук випускника</span>
+        {% if review.graduation_year %}
+          <span class="muted">Випуск {{ review.graduation_year }}</span>
+        {% endif %}
+      </div>
+      <h1>{{ review.full_name }}</h1>
+
+      <div class="graduate-review-detail-grid">
+        <aside class="graduate-review-detail-side">
+          {% if review.photo_path %}
+            <div class="graduate-review-detail-photo">
+              <img src="{{ uploads_url(review.photo_path) }}" alt="{{ review.full_name }}">
+            </div>
+          {% else %}
+            <div class="graduate-review-detail-photo graduate-review-detail-photo--fallback">
+              <span>{{ review.initials }}</span>
+            </div>
+          {% endif %}
+        </aside>
+
+        <div class="graduate-review-detail-body">
+          {% if review.specialty %}
+            <p class="article-summary">{{ review.specialty }}</p>
+          {% endif %}
+          {% if review.short_text %}
+            <p class="graduate-review-lead">{{ review.short_text }}</p>
+          {% endif %}
+          <div class="article-content">
+            {% for paragraph in review.full_text.split('\n') if paragraph.strip() %}
+              <p>{{ paragraph.strip() }}</p>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      {% if other_reviews %}
+        <section class="graduate-related-block">
+          <div class="section-header">
+            <h2>Інші відгуки</h2>
+            <a class="link" href="{{ url_for('graduates_reviews') }}">Усі відгуки</a>
+          </div>
+          <div class="graduate-review-grid graduate-review-grid--compact">
+            {% for item in other_reviews %}
+              <a class="graduate-review-tile graduate-review-link-card" href="{{ url_for('graduate_review_detail', review_id=item.id) }}">
+                {% if item.photo_path %}
+                  <div class="graduate-review-photo">
+                    <img src="{{ uploads_url(item.photo_path) }}" alt="{{ item.full_name }}">
+                  </div>
+                {% else %}
+                  <div class="graduate-review-media graduate-review-media--fallback">
+                    <span>{{ item.initials }}</span>
+                  </div>
+                {% endif %}
+                <div class="graduate-review-copy">
+                  <h3>{{ item.full_name }}</h3>
+                </div>
+              </a>
+            {% endfor %}
+          </div>
+        </section>
+      {% endif %}
+    </div>
+  </section>
+{% endblock %}

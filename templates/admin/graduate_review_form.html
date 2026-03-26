@@ -1,0 +1,72 @@
+﻿{% extends "layout.html" %}
+
+{% block title %}Відгук випускника — ВПФК{% endblock %}
+
+{% block content %}
+  <section class="section">
+    <div class="container admin-shell">
+      <div class="admin-header">
+        <div>
+          <h1>{% if review %}Редагувати відгук{% else %}Новий відгук{% endif %}</h1>
+          <p>Коротка картка для головної сторінки та повний текст для детальної сторінки.</p>
+        </div>
+        <a class="btn outline" href="{{ url_for('admin_graduate_reviews') }}">Назад</a>
+      </div>
+
+      <div class="admin-card">
+        <form method="post" enctype="multipart/form-data" class="form-grid">
+          <label class="form-field">
+            Ім'я та прізвище
+            <input class="input" type="text" name="full_name" value="{{ review.full_name if review else '' }}" required>
+          </label>
+
+          <label class="form-field">
+            Рік випуску
+            <input class="input" type="text" name="graduation_year" value="{{ review.graduation_year if review else '' }}" placeholder="2022">
+          </label>
+
+          <label class="form-field form-field-wide">
+            Спеціальність
+            <input class="input" type="text" name="specialty" value="{{ review.specialty if review else '' }}" placeholder="013 Початкова освіта...">
+          </label>
+
+          <label class="form-field form-field-wide">
+            Короткий опис
+            <textarea class="textarea" name="short_text" rows="3" placeholder="Короткий текст для детальної сторінки та прев'ю">{{ review.short_text if review else '' }}</textarea>
+          </label>
+
+          <label class="form-field form-field-wide">
+            Повний текст відгуку
+            <textarea class="textarea" name="full_text" rows="8" required>{{ review.full_text if review else '' }}</textarea>
+          </label>
+
+          <div class="form-field">
+            Фото
+            <input class="input" type="file" name="photo" accept="image/*">
+            {% if review and review.photo_path %}
+              <input type="hidden" name="remove_photo" id="remove-photo" value="0">
+              <div style="margin-top: 0.75rem; display:grid; gap:0.75rem;">
+                <img src="{{ uploads_url(review.photo_path) }}" alt="{{ review.full_name }}" style="width: 160px; height: 160px; object-fit: cover; border-radius: 18px; background: #eef4ff;">
+                <button class="btn outline danger small" type="button" onclick="document.getElementById('remove-photo').value='1'; this.disabled=true; this.textContent='Фото буде видалено';">Видалити поточне фото</button>
+              </div>
+            {% endif %}
+          </div>
+
+          <label class="form-field">
+            Порядок
+            <input class="input" type="number" name="sort_order" value="{{ review.sort_order if review else 0 }}">
+          </label>
+
+          <label class="form-field checkbox-field">
+            <input type="checkbox" name="is_published" {% if not review or review.is_published %}checked{% endif %}>
+            <span>Показувати на сайті</span>
+          </label>
+
+          <div class="form-field form-field-wide">
+            <button class="btn primary" type="submit">Зберегти відгук</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </section>
+{% endblock %}

@@ -62,10 +62,29 @@ app.secret_key = os.environ.get("FLASK_SECRET_KEY", "change-this-secret")
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 UPLOAD_FOLDER = 'static/uploads'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+ALLOWED_DOCUMENT_EXTENSIONS = {
+    "pdf",
+    "doc",
+    "docx",
+    "xls",
+    "xlsx",
+    "ppt",
+    "pptx",
+    "txt",
+    "rtf",
+    "csv",
+    "odt",
+    "ods",
+    "odp",
+    "zip",
+    "rar",
+    "7z",
+}
 
 _ALLOWED_HTML_TAGS = [
     "a",
     "b",
+    "blockquote",
     "br",
     "div",
     "em",
@@ -83,6 +102,28 @@ _ALLOWED_HTML_TAGS = [
     "u",
     "ul",
 ]
+
+_ALLOWED_CLASS_NAMES = {
+    "a": {"file-embed-link"},
+    "div": {
+        "file-embed",
+        "is-pdf",
+        "is-word",
+        "is-sheet",
+        "is-slide",
+        "is-archive",
+        "is-text",
+        "is-file",
+    },
+    "span": {
+        "file-embed-icon",
+        "file-embed-body",
+        "file-embed-ext",
+        "file-embed-name",
+        "file-embed-meta",
+    },
+    "strong": {"file-embed-name"},
+}
 
 def _is_safe_href(href: str) -> bool:
     href = href.strip()
@@ -123,6 +164,13 @@ class _SafeHTML(HTMLParser):
                 safe_attrs.append(("size", size))
             if color and len(color) <= 32:
                 safe_attrs.append(("color", color))
+
+        class_value = attrs_dict.get("class", "").strip()
+        allowed_classes = _ALLOWED_CLASS_NAMES.get(tag, set())
+        if class_value and allowed_classes:
+            filtered = [cls for cls in class_value.split() if cls in allowed_classes]
+            if filtered:
+                safe_attrs.append(("class", " ".join(filtered)))
 
         if safe_attrs:
             attrs_html = " ".join(f'{k}="{html.escape(v, quote=True)}"' for k, v in safe_attrs)
@@ -214,6 +262,27 @@ def allowed_file(filename):
 
 def allowed_pdf(filename: str) -> bool:
     return "." in filename and filename.rsplit(".", 1)[1].lower() == "pdf"
+
+
+def allowed_document(filename: str) -> bool:
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_DOCUMENT_EXTENSIONS
+
+
+def format_file_size(size_bytes: int | None) -> str:
+    if not size_bytes:
+        return "0 B"
+    size = float(size_bytes)
+    units = ["B", "KB", "MB", "GB"]
+    for unit in units:
+        if size < 1024 or unit == units[-1]:
+            if unit == "B":
+                return f"{int(size)} {unit}"
+            return f"{size:.1f} {unit}"
+        size /= 1024
+    return f"{int(size_bytes)} B"
+
+
+app.jinja_env.globals["format_file_size"] = format_file_size
 
 
 def normalize_hex_color(value: str | None, default: str) -> str:

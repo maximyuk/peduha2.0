@@ -158,4 +158,31 @@
       {% endif %}
     </div>
   </section>
+
+  <section class="section graduate-reviews-section" id="graduate-reviews">
+    <div class="container">
+      <div class="section-header">
+        <h2>Відгуки випускників</h2>
+        <a class="link" href="{{ url_for('graduates_reviews') }}">Переглянути більше відгуків</a>
+      </div>
+      <div class="graduate-review-grid">
+        {% for review in graduate_reviews %}
+          <a class="graduate-review-tile graduate-review-link-card" href="{{ url_for('graduate_review_detail', review_id=review.id) }}">
+            {% if review.photo_path %}
+              <div class="graduate-review-photo">
+                <img src="{{ uploads_url(review.photo_path) }}" alt="{{ review.full_name }}">
+              </div>
+            {% else %}
+              <div class="graduate-review-media graduate-review-media--fallback">
+                <span>{{ review.initials }}</span>
+              </div>
+            {% endif %}
+            <div class="graduate-review-copy">
+              <h3>{{ review.full_name }}</h3>
+            </div>
+          </a>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
 {% endblock %}

@@ -10,20 +10,6 @@
           <h1>Панель керування</h1>
           <p>Робота з користувачами, меню та статтями.</p>
         </div>
-        <div class="admin-actions">
-          <a class="btn outline" href="{{ url_for('admin_articles') }}">Статті</a>
-          <a class="btn outline" href="{{ url_for('admin_menu') }}">Меню</a>
-          <a class="btn outline" href="{{ url_for('admin_home_promos') }}">Промо головної</a>
-          <a class="btn outline" href="{{ url_for('admin_course_applications') }}">Заявки на курси</a>
-          <a class="btn outline" href="{{ url_for('admin_admission_questions') }}">Запитання вступників</a>
-          {% if current_user and current_user.role in ['owner', 'admin'] %}
-            <a class="btn outline" href="{{ url_for('admin_database') }}">База даних</a>
-          {% endif %}
-          <!-- <a class="btn outline" href="{{ url_for('admin_admissions_settings') }}">Вступ-2026</a> -->
-          {% if current_user and current_user.role in ['owner', 'admin'] %}
-            <a class="btn outline" href="{{ url_for('admin_users') }}">Користувачі</a>
-          {% endif %}
-        </div>
       </div>
 
       <div class="admin-card-grid">
@@ -51,6 +37,11 @@
           <h3>Запитання вступників</h3>
           <p>Повідомлення з форми "Написати запитання" зі сторінки вступу.</p>
           <a class="link" href="{{ url_for('admin_admission_questions') }}">Переглянути запитання</a>
+        </div>
+        <div class="admin-card">
+          <h3>Відгуки випускників</h3>
+          <p>Картки для головної сторінки та повні тексти відгуків з окремою сторінкою перегляду.</p>
+          <a class="link" href="{{ url_for('admin_graduate_reviews') }}">Керувати відгуками</a>
         </div>
         {% if current_user and current_user.role in ['owner', 'admin'] %}
           <div class="admin-card">

@@ -1,0 +1,37 @@
+﻿{% extends "layout.html" %}
+
+{% block title %}Відгуки випускників — ВПФК{% endblock %}
+
+{% block content %}
+  <section class="section graduate-reviews-page-section">
+    <div class="container graduate-reviews-wrap">
+      <div class="section-header">
+        <h1>Відгуки випускників</h1>
+        <a class="link" href="{{ url_for('index') }}#graduate-reviews">На головну</a>
+      </div>
+
+      {% if graduate_reviews %}
+        <div class="graduate-review-grid graduate-review-grid--full">
+          {% for review in graduate_reviews %}
+            <a class="graduate-review-tile graduate-review-link-card" href="{{ url_for('graduate_review_detail', review_id=review.id) }}">
+              {% if review.photo_path %}
+                <div class="graduate-review-photo">
+                  <img src="{{ uploads_url(review.photo_path) }}" alt="{{ review.full_name }}">
+                </div>
+              {% else %}
+                <div class="graduate-review-media graduate-review-media--fallback">
+                  <span>{{ review.initials }}</span>
+                </div>
+              {% endif %}
+              <div class="graduate-review-copy">
+                <h3>{{ review.full_name }}</h3>
+              </div>
+            </a>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-state">Поки що відгуків немає.</div>
+      {% endif %}
+    </div>
+  </section>
+{% endblock %}

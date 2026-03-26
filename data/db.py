@@ -186,6 +186,7 @@ def init_db() -> None:
           external_link TEXT,
           featured_image TEXT,
           image_gallery TEXT,
+          attachments TEXT,
           author_id INTEGER,
           created_at TEXT NOT NULL,
           updated_at TEXT NOT NULL,
@@ -248,6 +249,24 @@ def init_db() -> None:
 
     cursor.execute(
         """
+        CREATE TABLE IF NOT EXISTS graduate_reviews (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          full_name TEXT NOT NULL,
+          graduation_year TEXT,
+          specialty TEXT,
+          short_text TEXT,
+          full_text TEXT NOT NULL,
+          photo_path TEXT,
+          sort_order INTEGER NOT NULL DEFAULT 0,
+          is_published INTEGER NOT NULL DEFAULT 1,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        )
+        """
+    )
+
+    cursor.execute(
+        """
         CREATE TABLE IF NOT EXISTS site_settings (
           key TEXT PRIMARY KEY,
           value TEXT NOT NULL,
@@ -277,11 +296,25 @@ def init_db() -> None:
         cursor.execute("ALTER TABLE articles ADD COLUMN featured_image TEXT")
     if not column_exists("articles", "image_gallery"):
         cursor.execute("ALTER TABLE articles ADD COLUMN image_gallery TEXT")
+    if not column_exists("articles", "attachments"):
+        cursor.execute("ALTER TABLE articles ADD COLUMN attachments TEXT")
     if not column_exists("articles", "author_id"):
         cursor.execute("ALTER TABLE articles ADD COLUMN author_id INTEGER")
 
     if not column_exists("home_promos", "block_size"):
         cursor.execute("ALTER TABLE home_promos ADD COLUMN block_size TEXT NOT NULL DEFAULT 'md'")
+    if not column_exists("graduate_reviews", "graduation_year"):
+        cursor.execute("ALTER TABLE graduate_reviews ADD COLUMN graduation_year TEXT")
+    if not column_exists("graduate_reviews", "specialty"):
+        cursor.execute("ALTER TABLE graduate_reviews ADD COLUMN specialty TEXT")
+    if not column_exists("graduate_reviews", "short_text"):
+        cursor.execute("ALTER TABLE graduate_reviews ADD COLUMN short_text TEXT")
+    if not column_exists("graduate_reviews", "photo_path"):
+        cursor.execute("ALTER TABLE graduate_reviews ADD COLUMN photo_path TEXT")
+    if not column_exists("graduate_reviews", "sort_order"):
+        cursor.execute("ALTER TABLE graduate_reviews ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0")
+    if not column_exists("graduate_reviews", "is_published"):
+        cursor.execute("ALTER TABLE graduate_reviews ADD COLUMN is_published INTEGER NOT NULL DEFAULT 1")
     if not column_exists("course_applications", "status"):
         cursor.execute("ALTER TABLE course_applications ADD COLUMN status TEXT NOT NULL DEFAULT 'Нова'")
     if not column_exists("admission_questions", "status"):
@@ -341,6 +374,27 @@ def init_db() -> None:
         UPDATE admission_questions
         SET status = 'Нове'
         WHERE status IS NULL OR TRIM(status) = '' OR LOWER(TRIM(status)) = 'none'
+        """
+    )
+    cursor.execute(
+        """
+        UPDATE graduate_reviews
+        SET short_text = NULL
+        WHERE LOWER(TRIM(COALESCE(short_text, ''))) = 'none'
+        """
+    )
+    cursor.execute(
+        """
+        UPDATE graduate_reviews
+        SET specialty = NULL
+        WHERE LOWER(TRIM(COALESCE(specialty, ''))) = 'none'
+        """
+    )
+    cursor.execute(
+        """
+        UPDATE graduate_reviews
+        SET graduation_year = NULL
+        WHERE LOWER(TRIM(COALESCE(graduation_year, ''))) = 'none'
         """
     )
 
@@ -470,6 +524,92 @@ def init_db() -> None:
                 "Кваліфікаційний центр",
             ],
         )
+
+    cursor.execute("SELECT COUNT(*) AS total FROM graduate_reviews")
+    row = cursor.fetchone()
+    if row and row["total"] == 0:
+        seed_reviews = [
+            (
+                "Андрусик Анастасія",
+                "2021",
+                "014.12 Середня освіта (Образотворче мистецтво)",
+                "Коледж допоміг зібрати сильне портфоліо, знайти свій стиль і впевнено вступити в професію.",
+                "Навчання у коледжі дало мені сильну художню базу, багато практики та підтримку викладачів. Саме тут я навчилася презентувати свої роботи, працювати з проєктами та впевнено розвиватися у творчій професії.",
+                None,
+                1,
+                1,
+            ),
+            (
+                "Олег Ярініч",
+                "2019",
+                "029 Інформаційна, архівна та бібліотечна справа",
+                "Найцінніше для мене — жива практика, підтримка викладачів і реальні можливості для розвитку після випуску.",
+                "Коледж став для мене місцем, де теорія постійно підкріплювалася практикою. Я отримав корисні навички роботи з інформацією, комунікацією та організацією процесів, які стали опорою вже у перші роки роботи.",
+                None,
+                2,
+                1,
+            ),
+            (
+                "Лащівська Дарина",
+                "2022",
+                "013 Початкова освіта. Іноземна мова в початкових класах",
+                "Тут я отримала не лише фахову підготовку, а й середовище, де хочеться рости і пробувати нове.",
+                "Навчання у ВПФК допомогло мені відчути впевненість у професії вчителя. Я дуже ціную атмосферу підтримки, можливість брати участь у практиці та працювати з викладачами, які справді вірять у студентів.",
+                None,
+                3,
+                1,
+            ),
+            (
+                "Челядин Юрій",
+                "2007",
+                "014.10 Середня освіта (Трудове навчання та технології)",
+                "Навчання дало хорошу базу управлінських і педагогічних навичок, які допомагають мені й сьогодні.",
+                "Коледж дав мені не лише спеціальність, а й дисципліну, відповідальність та розуміння педагогічної роботи. Багато того, що я використовую в управлінні освітнім закладом сьогодні, було закладено саме під час навчання тут.",
+                None,
+                4,
+                1,
+            ),
+            (
+                "Волох Олег",
+                "2012",
+                "015.39 Професійна освіта (Цифрові технології)",
+                "Коледж дав сильний старт: від дисципліни й командної роботи до впевненості у власних проєктах.",
+                "Найкраще, що дав мені коледж, — це поєднання технічних навичок і вміння працювати з людьми. Тут я вперше відчув, що можу реалізовувати власні ідеї, працювати над проєктами та бачити результат своєї роботи.",
+                None,
+                5,
+                1,
+            ),
+            (
+                "Кульцман Олександр",
+                "2016",
+                "014.10 Середня освіта (Трудове навчання та технології)",
+                "Запам'ятався дуже людяний підхід: тебе справді бачать, підтримують і допомагають знайти свій шлях.",
+                "Для мене ВПФК — це про атмосферу, де студент не залишається сам. Тут завжди можна було отримати пораду, підтримку та практичний досвід, який потім легко перенести у професійне життя.",
+                None,
+                6,
+                1,
+            ),
+        ]
+        for item in seed_reviews:
+            exec_db(
+                """
+                INSERT INTO graduate_reviews
+                (full_name, graduation_year, specialty, short_text, full_text, photo_path, sort_order, is_published, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    item[0],
+                    item[1],
+                    item[2],
+                    item[3],
+                    item[4],
+                    item[5],
+                    item[6],
+                    item[7],
+                    datetime.utcnow().isoformat(),
+                    datetime.utcnow().isoformat(),
+                ),
+            )
 
     ensure_menu_urls(cursor)
     conn.commit()

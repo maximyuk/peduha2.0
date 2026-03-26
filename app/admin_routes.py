@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 import json
+import mimetypes
 import os
 import uuid
 from sqlite3 import IntegrityError
@@ -15,6 +16,7 @@ from app.core import (
     ADMISSION_QUESTION_STATUSES,
     ARTICLE_CATEGORIES,
     COURSE_APPLICATION_STATUSES,
+    allowed_document,
     allowed_file,
     app,
     can_manage_user,
@@ -438,11 +440,11 @@ def admin_user_new():
         position = normalize_optional_text(request.form.get("position"))
         profile_text = normalize_optional_text(request.form.get("profile_text"))
         if role not in roles:
-            flash("???????????????????? ???????? ?????? ??????????????????.", "error")
+            flash("Ви не можете створити користувача з цією роллю.", "error")
         elif not username or not password:
-            flash("?????????????????? ?????????? ?? ????????????.", "error")
+            flash("Заповніть логін та пароль.", "error")
         elif email and query_db("SELECT id FROM users WHERE LOWER(COALESCE(email, '')) = ?", (email,), one=True):
-            flash("?????????? ? ????? ?????? ??? ?????.", "error")
+            flash("Користувач із таким email уже існує.", "error")
         else:
             try:
                 execute_db(
@@ -463,10 +465,10 @@ def admin_user_new():
                         datetime.utcnow().isoformat(),
                     ),
                 )
-                flash("?????????????????????? ????????????????.", "success")
+                flash("Користувача створено.", "success")
                 return redirect(url_for("admin_users"))
             except IntegrityError:
-                flash("?????????? ?????????? ?????? ??????????.", "error")
+                flash("Такий логін уже зайнятий.", "error")
     return render_template("admin/user_form.html", roles=roles, user=None, active_title="")
 
 
@@ -498,9 +500,9 @@ def admin_user_edit(user_id: int):
         position = normalize_optional_text(request.form.get("position"))
         profile_text = normalize_optional_text(request.form.get("profile_text"))
         if not username:
-            flash("?????????? ???? ???????? ???????? ????????????????.", "error")
+            flash("Заповніть поле логіна користувача.", "error")
         elif email and query_db("SELECT id FROM users WHERE LOWER(COALESCE(email, '')) = ? AND id <> ?", (email, user_id), one=True):
-            flash("?????????? ? ????? ?????? ??? ?????.", "error")
+            flash("Користувач із таким email уже існує.", "error")
         else:
             if role not in roles and g.user["id"] != user["id"]:
                 role = user["role"]
@@ -517,7 +519,7 @@ def admin_user_edit(user_id: int):
                     "UPDATE users SET password_hash = ? WHERE id = ?",
                     (generate_password_hash(password), user_id),
                 )
-            flash("???????? ?????????????????????? ????????????????.", "success")
+            flash("Дані користувача оновлено.", "success")
             return redirect(url_for("admin_users"))
 
     return render_template("admin/user_form.html", roles=roles, user=user, active_title="")
@@ -630,6 +632,81 @@ def admin_articles():
     )
 
 
+def _load_article_attachments(raw_value: str | None) -> list[dict]:
+    if not raw_value:
+        return []
+    try:
+        parsed = json.loads(raw_value)
+    except (TypeError, ValueError):
+        return []
+    if not isinstance(parsed, list):
+        return []
+
+    attachments: list[dict] = []
+    for item in parsed:
+        if not isinstance(item, dict):
+            continue
+        path = normalize_upload_ref(item.get("path"))
+        if not path:
+            continue
+        name = (item.get("name") or os.path.basename(path)).strip() or os.path.basename(path)
+        ext = (item.get("ext") or os.path.splitext(name)[1].lstrip(".")).lower()
+        size = int(item.get("size") or 0)
+        mime_type = item.get("mime_type") or mimetypes.guess_type(name)[0] or "application/octet-stream"
+        attachments.append(
+            {
+                "name": name,
+                "path": path,
+                "ext": ext,
+                "size": size,
+                "mime_type": mime_type,
+            }
+        )
+    return attachments
+
+
+def _save_article_document(file_storage) -> dict | None:
+    if not file_storage or not file_storage.filename or not allowed_document(file_storage.filename):
+        return None
+
+    filename = secure_filename(file_storage.filename)
+    unique_filename = f"{uuid.uuid4().hex}_{filename}"
+    rel_path = f"articles/documents/{unique_filename}"
+    upload_path = upload_fs_path(rel_path)
+    if not upload_path:
+        return None
+
+    os.makedirs(os.path.dirname(upload_path), exist_ok=True)
+    file_storage.save(upload_path)
+    ext = os.path.splitext(filename)[1].lstrip(".").lower()
+    size = os.path.getsize(upload_path) if os.path.exists(upload_path) else 0
+    mime_type = file_storage.mimetype or mimetypes.guess_type(filename)[0] or "application/octet-stream"
+    return {
+        "name": filename,
+        "path": rel_path,
+        "ext": ext,
+        "size": size,
+        "mime_type": mime_type,
+    }
+
+
+def _save_graduate_review_photo(file_storage) -> str | None:
+    if not file_storage or not file_storage.filename or not allowed_file(file_storage.filename):
+        return None
+
+    filename = secure_filename(file_storage.filename)
+    unique_filename = f"{uuid.uuid4().hex}_{filename}"
+    rel_path = f"graduate_reviews/{unique_filename}"
+    upload_path = upload_fs_path(rel_path)
+    if not upload_path:
+        return None
+
+    os.makedirs(os.path.dirname(upload_path), exist_ok=True)
+    file_storage.save(upload_path)
+    resize_image(upload_path, max_width=1200, max_height=1200)
+    return rel_path
+
+
 @app.route("/admin/articles/new", methods=["GET", "POST"])
 @role_required("owner", "admin", "editor")
 def admin_article_new():
@@ -648,6 +725,7 @@ def admin_article_new():
         # Handle file uploads
         featured_image = None
         image_gallery = []
+        attachments = []
         
         # Handle featured image
         if 'featured_image' in request.files:
@@ -676,14 +754,20 @@ def admin_article_new():
                     resize_image(upload_path)
                     image_gallery.append(rel_path)
 
+        if 'article_documents' in request.files:
+            for file in request.files.getlist('article_documents'):
+                saved_attachment = _save_article_document(file)
+                if saved_attachment:
+                    attachments.append(saved_attachment)
+
         if not title or not content:
             flash("Заповніть назву та текст статті.", "error")
         else:
             execute_db(
                 """
                     INSERT INTO articles
-                (title, summary, content, category, section_id, published_date, event_date, external_link, featured_image, image_gallery, author_id, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (title, summary, content, category, section_id, published_date, event_date, external_link, featured_image, image_gallery, attachments, author_id, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     title,
@@ -696,6 +780,7 @@ def admin_article_new():
                     external_link,
                     featured_image,
                     json.dumps(image_gallery) if image_gallery else None,
+                    json.dumps(attachments) if attachments else None,
                     g.user["id"] if g.user else None,
                     datetime.utcnow().isoformat(),
                     datetime.utcnow().isoformat(),
@@ -736,6 +821,7 @@ def admin_article_edit(article_id: int):
         featured_image = normalize_upload_ref(featured_image_raw)
         image_gallery_raw = json.loads(article["image_gallery"]) if article["image_gallery"] else []
         image_gallery = [normalize_upload_ref(p) for p in image_gallery_raw if normalize_upload_ref(p)]
+        attachments = _load_article_attachments(article["attachments"])
 
         remove_featured_image = request.form.get("remove_featured_image") == "1"
         remove_gallery_images_raw = request.form.get("remove_gallery_images", "[]")
@@ -747,6 +833,16 @@ def admin_article_edit(article_id: int):
             remove_gallery_images = []
         remove_gallery_images_norm = [normalize_upload_ref(p) for p in remove_gallery_images if normalize_upload_ref(p)]
         remove_gallery_images_norm_set = set(remove_gallery_images_norm)
+        remove_attachments_raw = request.form.get("remove_attachments", "[]")
+        try:
+            remove_attachments = json.loads(remove_attachments_raw) if remove_attachments_raw else []
+            if not isinstance(remove_attachments, list):
+                remove_attachments = []
+        except (ValueError, TypeError):
+            remove_attachments = []
+        remove_attachments_set = {
+            normalize_upload_ref(path) for path in remove_attachments if normalize_upload_ref(path)
+        }
         
         # Remove featured image if requested
         if remove_featured_image and featured_image_raw:
@@ -767,6 +863,17 @@ def admin_article_edit(article_id: int):
                 else:
                     remaining.append(p)
             image_gallery = remaining
+
+        if remove_attachments_set:
+            remaining_attachments = []
+            for attachment in attachments:
+                if attachment["path"] in remove_attachments_set:
+                    old_path = upload_fs_path(attachment["path"])
+                    if old_path and os.path.exists(old_path):
+                        os.remove(old_path)
+                else:
+                    remaining_attachments.append(attachment)
+            attachments = remaining_attachments
         
         # Handle featured image update
         if 'featured_image' in request.files:
@@ -802,6 +909,12 @@ def admin_article_edit(article_id: int):
                     resize_image(upload_path)
                     image_gallery.append(rel_path)
 
+        if 'article_documents' in request.files:
+            for file in request.files.getlist('article_documents'):
+                saved_attachment = _save_article_document(file)
+                if saved_attachment:
+                    attachments.append(saved_attachment)
+
         if not title or not content:
             flash("Заповніть назву та текст статті.", "error")
         else:
@@ -810,7 +923,7 @@ def admin_article_edit(article_id: int):
                 UPDATE articles
                 SET title = ?, summary = ?, content = ?, category = ?, section_id = ?,
                     published_date = ?, event_date = ?, external_link = ?, featured_image = ?, 
-                    image_gallery = ?, updated_at = ?
+                    image_gallery = ?, attachments = ?, updated_at = ?
                 WHERE id = ?
                 """,
                 (
@@ -824,6 +937,7 @@ def admin_article_edit(article_id: int):
                     external_link,
                     featured_image,
                     json.dumps(image_gallery) if image_gallery else None,
+                    json.dumps(attachments) if attachments else None,
                     datetime.utcnow().isoformat(),
                     article_id,
                 ),
@@ -846,6 +960,155 @@ def admin_article_delete(article_id: int):
     article = query_db("SELECT * FROM articles WHERE id = ?", (article_id,), one=True)
     if not article:
         abort(404)
+    if article["featured_image"]:
+        featured_path = upload_fs_path(article["featured_image"])
+        if featured_path and os.path.exists(featured_path):
+            os.remove(featured_path)
+    if article["image_gallery"]:
+        for image_path in json.loads(article["image_gallery"]):
+            normalized = normalize_upload_ref(image_path)
+            file_path = upload_fs_path(normalized)
+            if file_path and os.path.exists(file_path):
+                os.remove(file_path)
+    for attachment in _load_article_attachments(article["attachments"]):
+        file_path = upload_fs_path(attachment["path"])
+        if file_path and os.path.exists(file_path):
+            os.remove(file_path)
     execute_db("DELETE FROM articles WHERE id = ?", (article_id,))
     flash("Статтю видалено.", "success")
     return redirect(url_for("admin_articles"))
+
+
+@app.route("/admin/graduate-reviews")
+@role_required("owner", "admin", "editor")
+def admin_graduate_reviews():
+    reviews = query_db(
+        """
+        SELECT *
+        FROM graduate_reviews
+        ORDER BY sort_order ASC, id DESC
+        """
+    )
+    return render_template("admin/graduate_reviews.html", reviews=reviews, active_title="")
+
+
+@app.route("/admin/graduate-reviews/new", methods=["GET", "POST"])
+@role_required("owner", "admin", "editor")
+def admin_graduate_review_new():
+    if request.method == "POST":
+        full_name = request.form.get("full_name", "").strip()
+        graduation_year = normalize_optional_text(request.form.get("graduation_year"))
+        specialty = normalize_optional_text(request.form.get("specialty"))
+        short_text = normalize_optional_text(request.form.get("short_text"))
+        full_text = request.form.get("full_text", "").strip()
+        sort_order_raw = request.form.get("sort_order", "0").strip()
+        is_published = 1 if request.form.get("is_published") == "on" else 0
+        sort_order = int(sort_order_raw) if sort_order_raw.isdigit() else 0
+        photo_path = _save_graduate_review_photo(request.files.get("photo"))
+
+        if not full_name or not full_text:
+            flash("Заповніть ім'я випускника та повний текст відгуку.", "error")
+        else:
+            now = datetime.utcnow().isoformat()
+            execute_db(
+                """
+                INSERT INTO graduate_reviews
+                (full_name, graduation_year, specialty, short_text, full_text, photo_path, sort_order, is_published, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    full_name,
+                    graduation_year,
+                    specialty,
+                    short_text,
+                    full_text,
+                    photo_path,
+                    sort_order,
+                    is_published,
+                    now,
+                    now,
+                ),
+            )
+            flash("Відгук випускника створено.", "success")
+            return redirect(url_for("admin_graduate_reviews"))
+
+    return render_template("admin/graduate_review_form.html", review=None, active_title="")
+
+
+@app.route("/admin/graduate-reviews/<int:review_id>/edit", methods=["GET", "POST"])
+@role_required("owner", "admin", "editor")
+def admin_graduate_review_edit(review_id: int):
+    review = query_db("SELECT * FROM graduate_reviews WHERE id = ?", (review_id,), one=True)
+    if not review:
+        abort(404)
+
+    if request.method == "POST":
+        full_name = request.form.get("full_name", "").strip()
+        graduation_year = normalize_optional_text(request.form.get("graduation_year"))
+        specialty = normalize_optional_text(request.form.get("specialty"))
+        short_text = normalize_optional_text(request.form.get("short_text"))
+        full_text = request.form.get("full_text", "").strip()
+        sort_order_raw = request.form.get("sort_order", "0").strip()
+        is_published = 1 if request.form.get("is_published") == "on" else 0
+        sort_order = int(sort_order_raw) if sort_order_raw.isdigit() else 0
+        photo_path = normalize_upload_ref(review["photo_path"])
+
+        if request.form.get("remove_photo") == "1" and photo_path:
+            old_path = upload_fs_path(photo_path)
+            if old_path and os.path.exists(old_path):
+                os.remove(old_path)
+            photo_path = None
+
+        new_photo = _save_graduate_review_photo(request.files.get("photo"))
+        if new_photo:
+            if photo_path:
+                old_path = upload_fs_path(photo_path)
+                if old_path and os.path.exists(old_path):
+                    os.remove(old_path)
+            photo_path = new_photo
+
+        if not full_name or not full_text:
+            flash("Заповніть ім'я випускника та повний текст відгуку.", "error")
+        else:
+            execute_db(
+                """
+                UPDATE graduate_reviews
+                SET full_name = ?, graduation_year = ?, specialty = ?, short_text = ?, full_text = ?,
+                    photo_path = ?, sort_order = ?, is_published = ?, updated_at = ?
+                WHERE id = ?
+                """,
+                (
+                    full_name,
+                    graduation_year,
+                    specialty,
+                    short_text,
+                    full_text,
+                    photo_path,
+                    sort_order,
+                    is_published,
+                    datetime.utcnow().isoformat(),
+                    review_id,
+                ),
+            )
+            flash("Відгук випускника оновлено.", "success")
+            return redirect(url_for("admin_graduate_reviews"))
+
+    return render_template("admin/graduate_review_form.html", review=review, active_title="")
+
+
+@app.route("/admin/graduate-reviews/<int:review_id>/delete", methods=["POST"])
+@role_required("owner", "admin", "editor")
+def admin_graduate_review_delete(review_id: int):
+    review = query_db("SELECT * FROM graduate_reviews WHERE id = ?", (review_id,), one=True)
+    if not review:
+        abort(404)
+
+    photo_path = normalize_upload_ref(review["photo_path"])
+    if photo_path:
+        file_path = upload_fs_path(photo_path)
+        if file_path and os.path.exists(file_path):
+            os.remove(file_path)
+
+    execute_db("DELETE FROM graduate_reviews WHERE id = ?", (review_id,))
+    flash("Відгук випускника видалено.", "success")
+    return redirect(url_for("admin_graduate_reviews"))

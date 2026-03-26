@@ -1,0 +1,63 @@
+﻿{% extends "layout.html" %}
+
+{% block title %}Відгуки випускників — ВПФК{% endblock %}
+
+{% block content %}
+  <section class="section">
+    <div class="container admin-shell">
+      <div class="admin-header">
+        <div>
+          <h1>Відгуки випускників</h1>
+          <p>Керуйте картками відгуків для головної сторінки та детальних публікацій.</p>
+        </div>
+        <a class="btn primary" href="{{ url_for('admin_graduate_review_new') }}">Новий відгук</a>
+      </div>
+
+      <div class="table-wrap">
+        <table class="table admin-table admin-articles-table">
+          <thead>
+            <tr>
+              <th>Фото</th>
+              <th>Ім'я</th>
+              <th>Рік</th>
+              <th>Спеціальність</th>
+              <th>Статус</th>
+              <th>Порядок</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for review in reviews %}
+              <tr>
+                <td class="article-thumb-cell cell-no-label" data-label="Фото">
+                  {% if review.photo_path %}
+                    <img src="{{ uploads_url(review.photo_path) }}" class="table-thumb" alt="{{ review.full_name }}">
+                  {% else %}
+                    <div class="table-thumb-placeholder">Немає</div>
+                  {% endif %}
+                </td>
+                <td data-label="Ім'я">{{ review.full_name }}</td>
+                <td data-label="Рік">{{ review.graduation_year or '-' }}</td>
+                <td data-label="Спеціальність">{{ review.specialty or '-' }}</td>
+                <td data-label="Статус">
+                  <span class="badge">{{ 'Опубліковано' if review.is_published else 'Чернетка' }}</span>
+                </td>
+                <td data-label="Порядок">{{ review.sort_order }}</td>
+                <td class="table-actions" data-label="Дії">
+                  <a class="link" href="{{ url_for('admin_graduate_review_edit', review_id=review.id) }}">Редагувати</a>
+                  <form method="post" action="{{ url_for('admin_graduate_review_delete', review_id=review.id) }}">
+                    <button class="link danger" type="submit">Видалити</button>
+                  </form>
+                </td>
+              </tr>
+            {% else %}
+              <tr class="table-empty">
+                <td colspan="7">Ще немає жодного відгуку.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+{% endblock %}

@@ -34,11 +34,11 @@
           <div class="logo-mark is-fallback">
             <img
               src="{{ url_for('static', filename='images/logo.png') }}"
-              alt="??????? ????"
+              alt="Логотип ВПФК"
               onload="this.closest('.logo-mark').classList.remove('is-fallback')"
               onerror="if(!this.dataset.fallback){this.dataset.fallback='1'; this.src='/images/logo.png'; return;} this.closest('.logo-mark').classList.add('is-fallback'); this.remove();"
             />
-            <span class="logo-fallback">????</span>
+            <span class="logo-fallback">ВПФК</span>
           </div>
           <div class="brand-text">
             <span class="brand-title">ВПФК</span>
@@ -54,6 +54,24 @@
           {{ render_menu(menu_items, active_title) }}
         </nav>
       </div>
+
+    </header>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-wrap">
+          <div class="container flash-messages">
+            {% for category, message in messages %}
+              <div class="flash {{ category }}">{{ message }}</div>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <main id="main">
+      {% block content %}{% endblock %}
+    </main>
 
       <!-- Mobile Bottom Navigation -->
       <nav class="mobile-nav" id="mobile-nav">
@@ -89,49 +107,54 @@
           </div>
         </div>
       </div>
-    </header>
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        <div class="flash-wrap">
-          <div class="container flash-messages">
-            {% for category, message in messages %}
-              <div class="flash {{ category }}">{{ message }}</div>
-            {% endfor %}
-          </div>
-        </div>
-      {% endif %}
-    {% endwith %}
-
-    <main id="main">
-      {% block content %}{% endblock %}
-    </main>
 
     <footer class="site-footer">
       <div class="container footer-grid">
         <div>
-          <a class="brand footer-brand brand-link" href="{{ url_for('index') }}" aria-label="Перейти на головну сторінку">
+          <a class="brand footer-brand brand-link" href="{{ url_for('index') }}" aria-label="&#1055;&#1077;&#1088;&#1077;&#1081;&#1090;&#1080; &#1085;&#1072; &#1075;&#1086;&#1083;&#1086;&#1074;&#1085;&#1091; &#1089;&#1090;&#1086;&#1088;&#1110;&#1085;&#1082;&#1091;">
             <div class="logo-mark is-fallback">
               <img
                 src="{{ url_for('static', filename='images/logo.png') }}"
-                alt="??????? ????"
+                alt="&#1051;&#1086;&#1075;&#1086;&#1090;&#1080;&#1087; &#1082;&#1086;&#1083;&#1077;&#1076;&#1078;&#1091;"
                 onload="this.closest('.logo-mark').classList.remove('is-fallback')"
                 onerror="if(!this.dataset.fallback){this.dataset.fallback='1'; this.src='/images/logo.png'; return;} this.closest('.logo-mark').classList.add('is-fallback'); this.remove();"
               />
-              <span class="logo-fallback">????</span>
+              <span class="logo-fallback">&#1042;&#1055;&#1060;&#1050;</span>
             </div>
             <div class="brand-text">
-              <span class="brand-title">ВПФК</span>
-              <span class="brand-subtitle"
-                >Володимирський педагогічний фаховий коледж імені Агатангела
-                Кримського Волинської обласної ради</span
-              >
+              <span class="brand-title">&#1042;&#1055;&#1060;&#1050;</span>
+              <span class="brand-subtitle">&#1042;&#1086;&#1083;&#1086;&#1076;&#1080;&#1084;&#1080;&#1088;&#1089;&#1100;&#1082;&#1080;&#1081; &#1087;&#1077;&#1076;&#1072;&#1075;&#1086;&#1075;&#1110;&#1095;&#1085;&#1080;&#1081; &#1092;&#1072;&#1093;&#1086;&#1074;&#1080;&#1081; &#1082;&#1086;&#1083;&#1077;&#1076;&#1078; &#1110;&#1084;&#1077;&#1085;&#1110; &#1040;&#1075;&#1072;&#1090;&#1072;&#1085;&#1075;&#1077;&#1083;&#1072; &#1050;&#1088;&#1080;&#1084;&#1089;&#1100;&#1082;&#1086;&#1075;&#1086;</span>
             </div>
           </a>
-          <p class="footer-note">
-            Адреса: вул. Устилузька, м. Володимир · Тел: +38(033)4235555
-          </p>
+          <p class="footer-note">&#1040;&#1076;&#1088;&#1077;&#1089;&#1072;: &#1074;&#1091;&#1083;. &#1059;&#1089;&#1090;&#1080;&#1083;&#1091;&#1079;&#1100;&#1082;&#1072;, &#1084;. &#1042;&#1086;&#1083;&#1086;&#1076;&#1080;&#1084;&#1080;&#1088; &middot; &#1058;&#1077;&#1083;: +38(033)4235555</p>
         </div>
+        <div class="footer-column">
+          <h3 class="footer-title">&#1057;&#1090;&#1086;&#1088;&#1110;&#1085;&#1082;&#1080;</h3>
+          <div class="footer-links">
+            <a href="{{ url_for('index') }}">&#1043;&#1086;&#1083;&#1086;&#1074;&#1085;&#1072;</a>
+            <a href="{{ url_for('articles') }}">&#1053;&#1086;&#1074;&#1080;&#1085;&#1080;</a>
+            <a href="{{ url_for('admissions') }}">&#1040;&#1073;&#1110;&#1090;&#1091;&#1088;&#1110;&#1108;&#1085;&#1090;&#1091;-2026</a>
+            <a href="{{ url_for('courses') }}">&#1055;&#1110;&#1076;&#1075;&#1086;&#1090;&#1086;&#1074;&#1095;&#1110; &#1082;&#1091;&#1088;&#1089;&#1080;</a>
+          </div>
+        </div>
+        <div class="footer-column">
+          <h3 class="footer-title">&#1050;&#1086;&#1088;&#1080;&#1089;&#1085;&#1110; &#1087;&#1086;&#1089;&#1080;&#1083;&#1072;&#1085;&#1085;&#1103;</h3>
+          <div class="footer-links">
+            <a href="{{ url_for('search') }}">&#1055;&#1086;&#1096;&#1091;&#1082;</a>
+            <a href="tel:+380334235555">+38 (033) 423-55-55</a>
+            <a href="mailto:info@vpfk.example">info@vpfk.example</a>
+          </div>
+        </div>
+      </div>
+      <div class="container footer-partners">
+        <div class="footer-legal-links">
+          <a href="{{ url_for('public_offer') }}">&#1044;&#1086;&#1075;&#1086;&#1074;&#1110;&#1088; &#1087;&#1091;&#1073;&#1083;&#1110;&#1095;&#1085;&#1086;&#1111; &#1086;&#1092;&#1077;&#1088;&#1090;&#1080;</a>
+          <a href="https://howareu.com/" target="_blank" rel="noopener">&#1058;&#1080; &#1103;&#1082;?</a>
+        </div>
+      </div>
+      <div class="container footer-bottom">
+        <p class="footer-copy">&#1040;&#1074;&#1090;&#1086;&#1088;&#1089;&#1100;&#1082;&#1110; &#1087;&#1088;&#1072;&#1074;&#1072; &copy; 2026.</p>
       </div>
     </footer>
 

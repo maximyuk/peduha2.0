@@ -1,59 +1,78 @@
 {% extends "layout.html" %}
 
-{% block title %}{{ article.title }} — ВПФК{% endblock %}
+{% block title %}{{ article.title }} &mdash; &#1042;&#1055;&#1060;&#1050;{% endblock %}
 
 {% block content %}
   <section class="section">
     <div class="container article-detail">
       <div class="article-meta">
         <span class="badge">{{ article.category }}</span>
-        <span class="muted">Публікація: {{ article.published_date }}</span>
+        <span class="muted">&#1055;&#1091;&#1073;&#1083;&#1110;&#1082;&#1072;&#1094;&#1110;&#1103;: {{ article.published_date }}</span>
         {% if article.event_date %}
-          <span class="muted">Подія: {{ article.event_date }}</span>
+          <span class="muted">&#1055;&#1086;&#1076;&#1110;&#1103;: {{ article.event_date }}</span>
         {% endif %}
       </div>
       <div class="article-publish-pill">
-        <span>Опубліковано:</span>
+        <span>&#1054;&#1087;&#1091;&#1073;&#1083;&#1110;&#1082;&#1086;&#1074;&#1072;&#1085;&#1086;:</span>
         {% set author_name = article.author_full_name|trim if article.author_full_name else '' %}
         {% if article.author_username %}
           <a href="{{ url_for('user_profile', username=article.author_username) }}">{{ author_name or article.author_username }}</a>
         {% else %}
-          <span>{{ author_name or 'Користувач' }}</span>
+          <span>{{ author_name or 'Адміністрація' }}</span>
         {% endif %}
-        <span>·</span>
+        <span>&middot;</span>
         <span>{{ article.created_at[:10] if article.created_at else article.published_date }}</span>
       </div>
       <h1>{{ article.title }}</h1>
-      
-      <!-- Featured Image -->
+
       {% if article.featured_image %}
         <div class="article-featured-image" style="margin-bottom: 20px;">
-          <img src="{{ uploads_url(article.featured_image) }}" 
-               style="width: 100%; max-height: 600px; object-fit: contain; border-radius: 8px; background: #f8fafc;" 
-               alt="{{ article.title }}">
+          <img src="{{ uploads_url(article.featured_image) }}" style="width: 100%; max-height: 600px; object-fit: contain; border-radius: 8px; background: #f8fafc;" alt="{{ article.title }}">
         </div>
       {% endif %}
-      
+
       {% set summary_text = article.summary|clean_text %}
       {% if summary_text %}
         <p class="article-summary">{{ summary_text }}</p>
       {% endif %}
+
       <div class="article-content">
         {{ article.content|sanitize_html|safe }}
       </div>
-      
-      <!-- Image Gallery -->
+
+      {% if article.attachments %}
+        {% set attachments = article.attachments|from_json if article.attachments else [] %}
+        {% if attachments %}
+          <section class="article-attachments">
+            <div class="section-header">
+              <h2>&#1044;&#1086;&#1082;&#1091;&#1084;&#1077;&#1085;&#1090;&#1080; &#1076;&#1086; &#1089;&#1090;&#1072;&#1090;&#1090;&#1110;</h2>
+            </div>
+            <div class="attachment-list">
+              {% for attachment in attachments %}
+                <article class="attachment-item attachment-item-public">
+                  <div>
+                    <strong>{{ attachment.name }}</strong>
+                    <div class="muted">{{ attachment.ext|upper }} &middot; {{ format_file_size(attachment.size) }}</div>
+                  </div>
+                  <div class="attachment-actions">
+                    <a class="btn outline small" href="{{ uploads_url(attachment.path) }}" target="_blank" rel="noopener">&#1042;&#1110;&#1076;&#1082;&#1088;&#1080;&#1090;&#1080;</a>
+                    <a class="btn primary small" href="{{ uploads_url(attachment.path) }}" download>&#1047;&#1072;&#1074;&#1072;&#1085;&#1090;&#1072;&#1078;&#1080;&#1090;&#1080;</a>
+                  </div>
+                </article>
+              {% endfor %}
+            </div>
+          </section>
+        {% endif %}
+      {% endif %}
+
       {% if article.image_gallery %}
         {% set gallery = article.image_gallery|from_json if article.image_gallery else [] %}
         {% if gallery %}
           <div class="article-gallery" style="margin-top: 30px;">
-            <h3>Галерея зображень</h3>
+            <h3>&#1043;&#1072;&#1083;&#1077;&#1088;&#1077;&#1103; &#1079;&#1086;&#1073;&#1088;&#1072;&#1078;&#1077;&#1085;&#1100;</h3>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px;">
               {% for img_path in gallery %}
-                <img src="{{ uploads_url(img_path) }}" 
-                     style="width: 100%; height: 200px; object-fit: cover; border-radius: 8px; cursor: pointer;" 
-                     alt="Gallery {{ loop.index }}"
-                     onclick="openImageModal('{{ uploads_url(img_path) }}', '{{ article.title }} - Image {{ loop.index }}')">
+                <img src="{{ uploads_url(img_path) }}" style="width: 100%; height: 200px; object-fit: cover; border-radius: 8px; cursor: pointer;" alt="Gallery {{ loop.index }}" onclick="openImageModal('{{ uploads_url(img_path) }}', '{{ article.title }} - Image {{ loop.index }}')">
               {% endfor %}
             </div>
           </div>
@@ -63,16 +82,15 @@
         {% if article.section_title %}
           <span class="muted">{{ article.section_title }}</span>
         {% endif %}
-        <a class="link" href="{{ url_for('articles') }}">До всіх статей</a>
+        <a class="link" href="{{ url_for('articles') }}">&#1044;&#1086; &#1074;&#1089;&#1110;&#1093; &#1089;&#1090;&#1072;&#1090;&#1077;&#1081;</a>
       </div>
     </div>
   </section>
-  
-  <!-- Image Modal -->
+
   <div id="imageModal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.9);">
     <span onclick="closeImageModal()" style="position: absolute; top: 20px; right: 35px; color: #f1f1f1; font-size: 40px; font-weight: bold; cursor: pointer;">&times;</span>
     <img id="modalImage" style="margin: auto; display: block; width: 80%; max-width: 700px; max-height: 80%; margin-top: 50px; object-fit: contain;">
-    <div id="modalCaption" style="margin: auto; display: block; width: 80%; max-width: 700px; text-align: center; color: #ccc; padding: 10px 0; height: 150px;"></div>
+    <div id="modalCaption" style="margin: auto; display: block; width: 80%; max-width: 700px; text-align: center; color: #ccc; padding: 10px 0; min-height: 50px;"></div>
   </div>
 {% endblock %}
 
@@ -88,7 +106,6 @@ function closeImageModal() {
   document.getElementById('imageModal').style.display = 'none';
 }
 
-// Close modal when clicking outside the image
 window.onclick = function(event) {
   const modal = document.getElementById('imageModal');
   if (event.target == modal) {

@@ -1,171 +1,137 @@
 {% extends "layout.html" %}
 
-{% block title %}Стаття — ВПФК{% endblock %}
+{% block title %}&#1057;&#1090;&#1072;&#1090;&#1090;&#1103; &mdash; &#1042;&#1055;&#1060;&#1050;{% endblock %}
 
 {% block content %}
   <section class="section">
     <div class="container admin-shell">
       <div class="admin-header">
         <div>
-          <h1>{{ 'Редагувати статтю' if article else 'Нова стаття' }}</h1>
-          <p>Додавайте назву, опис, текст та дати публікації.</p>
+          <h1>{% if article %}&#1056;&#1077;&#1076;&#1072;&#1075;&#1091;&#1074;&#1072;&#1090;&#1080; &#1089;&#1090;&#1072;&#1090;&#1090;&#1102;{% else %}&#1053;&#1086;&#1074;&#1072; &#1089;&#1090;&#1072;&#1090;&#1090;&#1103;{% endif %}</h1>
+          <p>&#1057;&#1090;&#1074;&#1086;&#1088;&#1102;&#1081;&#1090;&#1077; &#1087;&#1086;&#0432;&#1085;&#1086;&#1094;&#1110;&#1085;&#1085;&#1091; &#1089;&#1090;&#1072;&#1090;&#1090;&#1102;: &#1090;&#1077;&#1082;&#1089;&#1090;, &#1079;&#1086;&#1073;&#1088;&#1072;&#1078;&#1077;&#1085;&#1085;&#1103;, &#1076;&#1086;&#1082;&#1091;&#1084;&#1077;&#1085;&#1090;&#1080; &#1110; &#1087;&#043e;&#1089;&#1080;&#1083;&#1072;&#1085;&#1085;&#1103;.</p>
         </div>
-        <a class="btn outline" href="{{ url_for('admin_articles') }}">Назад</a>
+        <a class="btn outline" href="{{ url_for('admin_articles') }}">&#1053;&#1072;&#1079;&#1072;&#1076;</a>
       </div>
 
       <div class="admin-card">
-        <form method="post" enctype="multipart/form-data" class="form-grid">
+        <form method="post" enctype="multipart/form-data" class="form-grid article-editor-form">
           <label class="form-field">
-            Назва
+            &#1053;&#1072;&#1079;&#1074;&#1072;
             <input class="input" name="title" type="text" value="{{ article.title|clean_text if article else '' }}" required />
           </label>
+
           <label class="form-field">
-            Короткий опис
+            &#1050;&#1086;&#1088;&#1086;&#1090;&#1082;&#1080;&#1081; &#1086;&#1087;&#1080;&#1089;
             <textarea class="textarea" name="summary" rows="3">{{ article.summary|clean_text if article else '' }}</textarea>
           </label>
-          <div class="form-field">
-            <div>Повний текст</div>
-            <div class="editor-toolbar" role="toolbar" aria-label="Форматування тексту">
+
+          <div class="form-field form-field-wide">
+            <div>&#1055;&#1086;&#1074;&#1085;&#1080;&#1081; &#1090;&#1077;&#1082;&#1089;&#1090;</div>
+            <div class="editor-toolbar" role="toolbar" aria-label="&#1060;&#1086;&#1088;&#1084;&#1072;&#1090;&#1091;&#1074;&#1072;&#1085;&#1085;&#1103; &#1090;&#1077;&#1082;&#1089;&#1090;&#1091;">
+              <select class="select editor-select" data-block aria-label="&#1057;&#1090;&#1088;&#1091;&#1082;&#1090;&#1091;&#1088;&#1072;">
+                <option value="">&#1040;&#1073;&#1079;&#1072;&#1094;</option>
+                <option value="h2">&#1047;&#1072;&#1075;&#1086;&#1083;&#1086;&#1074;&#1086;&#1082; 2</option>
+                <option value="h3">&#1047;&#1072;&#1075;&#1086;&#1083;&#1086;&#1074;&#1086;&#1082; 3</option>
+                <option value="blockquote">&#1062;&#1080;&#1090;&#1072;&#1090;&#1072;</option>
+              </select>
               <button class="btn outline small" type="button" data-cmd="bold"><b>B</b></button>
               <button class="btn outline small" type="button" data-cmd="italic"><i>I</i></button>
               <button class="btn outline small" type="button" data-cmd="underline"><u>U</u></button>
-              <select class="select editor-select" data-cmd="fontName" aria-label="Шрифт">
+              <button class="btn outline small" type="button" data-cmd="insertUnorderedList">&#8226; &#1057;&#1087;&#1080;&#1089;&#1086;&#1082;</button>
+              <button class="btn outline small" type="button" data-cmd="insertOrderedList">1. &#1057;&#1087;&#1080;&#1089;&#1086;&#1082;</button>
+              <button class="btn outline small" type="button" id="insert-link-btn">&#1055;&#1086;&#1089;&#1080;&#1083;&#1072;&#1085;&#1085;&#1103;</button>
+              <button class="btn outline small" type="button" data-cmd="removeFormat">&#1054;&#1095;&#1080;&#1089;&#1090;&#1080;&#1090;&#1080;</button>
+              <select class="select editor-select" data-cmd="fontName" aria-label="&#1064;&#1088;&#1080;&#1092;&#1090;">
                 <option value="Arial">Arial</option>
                 <option value="Times New Roman">Times New Roman</option>
                 <option value="Verdana">Verdana</option>
                 <option value="Tahoma">Tahoma</option>
                 <option value="Georgia">Georgia</option>
               </select>
-              <select class="select editor-select" data-cmd="fontSize" aria-label="Розмір">
-                <option value="2">Малий</option>
-                <option value="3" selected>Нормальний</option>
-                <option value="4">Середній</option>
-                <option value="5">Великий</option>
-                <option value="6">Дуже великий</option>
+              <select class="select editor-select" data-cmd="fontSize" aria-label="&#1056;&#1086;&#1079;&#1084;&#1110;&#1088;">
+                <option value="2">&#1052;&#1072;&#1083;&#1080;&#1081;</option>
+                <option value="3" selected>&#1053;&#1086;&#1088;&#1084;&#1072;&#1083;&#1100;&#1085;&#1080;&#1081;</option>
+                <option value="4">&#1057;&#1077;&#1088;&#1077;&#1076;&#1085;&#1110;&#1081;</option>
+                <option value="5">&#1042;&#1077;&#1083;&#1080;&#1082;&#1080;&#1081;</option>
+                <option value="6">&#1044;&#1091;&#1078;&#1077; &#1074;&#1077;&#1083;&#1080;&#1082;&#1080;&#1081;</option>
               </select>
-              <button class="btn outline small" type="button" id="insert-pdf-btn">Додати PDF</button>
-              <input id="pdf-input" class="file-input" type="file" accept="application/pdf" />
+              <button class="btn outline small" type="button" id="insert-document-btn">&#1042;&#1089;&#1090;&#1072;&#1074;&#1080;&#1090;&#1080; &#1091; &#1090;&#1077;&#1082;&#1089;&#1090;</button>
+              <input id="document-input" class="file-input" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.rtf,.csv,.odt,.ods,.odp,.zip,.rar,.7z" />
             </div>
             <div
               id="content-editor"
               class="rich-editor"
               contenteditable="true"
               spellcheck="true"
-              aria-label="Повний текст"
+              aria-label="&#1055;&#1086;&#1074;&#1085;&#1080;&#1081; &#1090;&#1077;&#1082;&#1089;&#1090;"
               data-initial='{{ (article.content|clean_text if article else "")|tojson }}'
             ></div>
             <textarea class="textarea" id="content-textarea" name="content" rows="6" style="display:none;"></textarea>
-            <small>Порада: форматування збережеться. PDF додається як посилання в текст.</small>
+            <small>&#1042;&#1080;&#1082;&#1086;&#1088;&#1080;&#1089;&#1090;&#1086;&#1074;&#1091;&#1081;&#1090;&#1077; &#1079;&#1072;&#1075;&#1086;&#1083;&#1086;&#1074;&#1082;&#1080;, &#1089;&#1087;&#1080;&#1089;&#1082;&#1080;, &#1087;&#1086;&#1089;&#1080;&#1083;&#1072;&#1085;&#1085;&#1103; &#1110; &#1074;&#1089;&#1090;&#1072;&#1074;&#1082;&#1091; &#1092;&#1072;&#1081;&#1083;&#1110;&#1074; &#1076;&#1083;&#1103; &#1087;&#043e;&#1074;&#043d;&#1086;&#1094;&#1110;&#1085;&#1085;&#1086;&#1075;&#1086; &#1086;&#1092;&#1086;&#1088;&#1084;&#1083;&#1077;&#1085;&#1085;&#1103;.</small>
           </div>
+
           <label class="form-field">
-            Категорія
+            &#1050;&#1072;&#1090;&#1077;&#1075;&#1086;&#1088;&#1110;&#1103;
             <select class="select" name="category">
               {% for cat in categories %}
-                <option value="{{ cat }}" {% if article and article.category == cat %}selected{% endif %}>
-                  {{ cat }}
-                </option>
+                <option value="{{ cat }}" {% if article and article.category == cat %}selected{% endif %}>{{ cat }}</option>
               {% endfor %}
             </select>
           </label>
+
           <label class="form-field">
-            Розділ сайту
+            &#1056;&#1086;&#1079;&#1076;&#1110;&#1083; &#1089;&#1072;&#1081;&#1090;&#1091;
             <select class="select" name="section_id">
-              <option value="">Без прив'язки</option>
+              <option value="">&#1041;&#1077;&#1079; &#1087;&#1088;&#1080;&#1074;'&#1103;&#1079;&#1082;&#1080;</option>
               {% for section in sections %}
-                <option value="{{ section.id }}" {% if article and article.section_id == section.id %}selected{% endif %}>
-                  {{ "-" * section.level }} {{ section.title }}
-                </option>
+                <option value="{{ section.id }}" {% if article and article.section_id == section.id %}selected{% endif %}>{{ "-" * section.level }} {{ section.title }}</option>
               {% endfor %}
             </select>
           </label>
+
           <label class="form-field">
-            Дата публікації
-            <input
-              class="input"
-              name="published_date"
-              type="date"
-              value="{{ article.published_date|clean_text if article else '' }}"
-            />
+            &#1044;&#1072;&#1090;&#1072; &#1087;&#1091;&#1073;&#1083;&#1110;&#1082;&#1072;&#1094;&#1110;&#1111;
+            <input class="input" name="published_date" type="date" value="{{ article.published_date|clean_text if article else '' }}" />
           </label>
+
           <label class="form-field">
-            Дата події (для подій)
-            <input
-              class="input"
-              name="event_date"
-              type="date"
-              value="{{ article.event_date|clean_text if article else '' }}"
-            />
+            &#1044;&#1072;&#1090;&#1072; &#1087;&#1086;&#1076;&#1110;&#1111;
+            <input class="input" name="event_date" type="date" value="{{ article.event_date|clean_text if article else '' }}" />
           </label>
-          <label class="form-field">
-            Зовнішнє посилання (замість статті або як кнопка)
-            <input
-              class="input"
-              name="external_link"
-              type="url"
-              placeholder="https://example.com"
-              value="{{ article.external_link|clean_text if article else '' }}"
-            />
-            <small>Якщо заповнено, статія буде посиланням на цей сайт</small>
+
+          <label class="form-field form-field-wide">
+            &#1047;&#1086;&#1074;&#1085;&#1110;&#1096;&#1085;&#1108; &#1087;&#1086;&#1089;&#1080;&#1083;&#1072;&#1085;&#1085;&#1103;
+            <input class="input" name="external_link" type="url" placeholder="https://example.com" value="{{ article.external_link|clean_text if article else '' }}" />
+            <small>&#1071;&#1082;&#1097;&#1086; &#1079;&#1072;&#1087;&#1086;&#1074;&#1085;&#1080;&#1090;&#1080;, &#1082;&#1086;&#1088;&#1080;&#1089;&#1090;&#1091;&#1074;&#1072;&#1095; &#1079;&#1084;&#1086;&#1078;&#1077; &#1087;&#1077;&#1088;&#1077;&#1081;&#1090;&#1080; &#1079; &#1082;&#1072;&#1088;&#1090;&#1082;&#1080; &#1089;&#1090;&#1072;&#1090;&#1090;&#1110; &#1087;&#0440;&#1103;&#1084;&#1086; &#1079;&#1072; &#1094;&#1080;&#1084; URL.</small>
           </label>
-          
-          <!-- Featured Image Upload -->
+
           <div class="form-field">
-            <div>Головне зображення</div>
+            <div>&#1043;&#1086;&#1083;&#1086;&#1074;&#1085;&#1077; &#1079;&#1086;&#1073;&#1088;&#1072;&#1078;&#1077;&#1085;&#1085;&#1103;</div>
             <input type="hidden" name="remove_featured_image" id="remove-featured-image" value="0" />
             <div class="file-picker">
-              <input
-                id="featured-image-input"
-                class="input file-input"
-                type="file"
-                name="featured_image"
-                accept="image/*"
-                onchange="handleFeaturedImageChange(event)"
-              />
-              <button class="btn outline" type="button" onclick="openFilePicker('featured-image-input')">
-                Завантажити фото
-              </button>
-              <button class="btn outline danger small" type="button" onclick="clearFeaturedSelection()">
-                Прибрати вибір
-              </button>
+              <input id="featured-image-input" class="input file-input" type="file" name="featured_image" accept="image/*" onchange="handleFeaturedImageChange(event)" />
+              <button class="btn outline" type="button" onclick="openFilePicker('featured-image-input')">&#1047;&#1072;&#1074;&#1072;&#1085;&#1090;&#1072;&#1078;&#1080;&#1090;&#1080; &#1092;&#1086;&#1090;&#1086;</button>
+              <button class="btn outline danger small" type="button" onclick="clearFeaturedSelection()">&#1055;&#1088;&#1080;&#1073;&#1088;&#1072;&#1090;&#1080; &#1074;&#1080;&#1073;&#1110;&#1088;</button>
               {% if article and article.featured_image %}
-                <button class="btn outline danger small" type="button" onclick="removeCurrentFeaturedImage()">
-                  Видалити поточне
-                </button>
+                <button class="btn outline danger small" type="button" onclick="removeCurrentFeaturedImage()">&#1042;&#1080;&#1076;&#1072;&#1083;&#1080;&#1090;&#1080; &#1087;&#1086;&#1090;&#1086;&#1095;&#1085;&#1077;</button>
               {% endif %}
               <span id="featured-image-name" class="file-name" aria-live="polite"></span>
             </div>
-            <div
-              id="featured-preview"
-              style="margin-top: 10px;"
-              data-existing-url="{{ uploads_url(article.featured_image) if article and article.featured_image else '' }}"
-            >
+            <div id="featured-preview" data-existing-url="{{ uploads_url(article.featured_image) if article and article.featured_image else '' }}" style="margin-top: 10px;">
               {% if article and article.featured_image %}
                 <img src="{{ uploads_url(article.featured_image) }}" style="max-width: 260px; max-height: 180px; object-fit: contain; background: #f8fafc; border-radius: 8px;" alt="Preview">
-                <br><small>Поточне зображення</small>
+                <br><small>&#1055;&#1086;&#1090;&#1086;&#1095;&#1085;&#1077; &#1079;&#1086;&#1073;&#1088;&#1072;&#1078;&#1077;&#1085;&#1085;&#1103;</small>
               {% endif %}
             </div>
           </div>
-          
-          <!-- Gallery Images Upload -->
+
           <div class="form-field">
-            <div>Галерея зображень</div>
+            <div>&#1043;&#1072;&#1083;&#1077;&#1088;&#1077;&#1103; &#1079;&#1086;&#1073;&#1088;&#1072;&#1078;&#1077;&#1085;&#1100;</div>
             <input type="hidden" name="remove_gallery_images" id="remove-gallery-images" value="[]" />
             <div class="file-picker">
-              <input
-                id="gallery-images-input"
-                class="input file-input"
-                type="file"
-                name="gallery_images"
-                accept="image/*"
-                multiple
-                onchange="handleGalleryImagesChange(event)"
-              />
-              <button class="btn outline" type="button" onclick="openFilePicker('gallery-images-input')">
-                Додати фото
-              </button>
-              <button class="btn outline danger small" type="button" onclick="clearGallerySelection()">
-                Очистити вибір
-              </button>
+              <input id="gallery-images-input" class="input file-input" type="file" name="gallery_images" accept="image/*" multiple onchange="handleGalleryImagesChange(event)" />
+              <button class="btn outline" type="button" onclick="openFilePicker('gallery-images-input')">&#1044;&#1086;&#1076;&#1072;&#1090;&#1080; &#1092;&#1086;&#1090;&#1086;</button>
+              <button class="btn outline danger small" type="button" onclick="clearGallerySelection()">&#1054;&#1095;&#1080;&#1089;&#1090;&#1080;&#1090;&#1080; &#1074;&#1080;&#1073;&#1110;&#1088;</button>
               <span id="gallery-images-name" class="file-name" aria-live="polite"></span>
             </div>
             <div id="gallery-preview" style="margin-top: 10px;">
@@ -175,17 +141,47 @@
                   {% for img_path in gallery %}
                     <div class="gallery-item" data-gallery-path="{{ img_path }}">
                       <img src="{{ uploads_url(img_path) }}" style="max-width: 100px; max-height: 100px; object-fit: cover;" alt="Gallery {{ loop.index }}">
-                      <button class="gallery-remove" type="button" onclick="markGalleryImageForRemoval(this)">×</button>
+                      <button class="gallery-remove" type="button" onclick="markGalleryImageForRemoval(this)">&times;</button>
                     </div>
                   {% endfor %}
                 </div>
-                <br><small>Поточна галерея</small>
+                <br><small>&#1055;&#1086;&#1090;&#1086;&#1095;&#1085;&#1072; &#1075;&#1072;&#1083;&#1077;&#1088;&#1077;&#1103;</small>
               {% endif %}
             </div>
             <div id="gallery-new-preview" style="margin-top: 10px;"></div>
           </div>
-          
-          <button class="btn primary" type="submit">{{ 'Зберегти' if article else 'Створити' }}</button>
+
+          <div class="form-field article-attachments-field form-field-wide">
+            <div>&#1044;&#1086;&#1082;&#1091;&#1084;&#1077;&#1085;&#1090;&#1080; &#1076;&#1086; &#1089;&#1090;&#1072;&#1090;&#1090;&#1110;</div>
+            <input type="hidden" name="remove_attachments" id="remove-attachments" value="[]" />
+            <div class="file-picker">
+              <input id="article-documents-input" class="input file-input" type="file" name="article_documents" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.rtf,.csv,.odt,.ods,.odp,.zip,.rar,.7z" multiple onchange="handleArticleDocumentsChange(event)" />
+              <button class="btn outline" type="button" onclick="openFilePicker('article-documents-input')">&#1044;&#1086;&#1076;&#1072;&#1090;&#1080; &#1103;&#1082; &#1074;&#1082;&#1083;&#1072;&#1076;&#1077;&#1085;&#1085;&#1103;</button>
+              <button class="btn outline danger small" type="button" onclick="clearDocumentSelection()">&#1054;&#1095;&#1080;&#1089;&#1090;&#1080;&#1090;&#1080; &#1074;&#1080;&#1073;&#1110;&#1088;</button>
+              <span id="article-documents-name" class="file-name" aria-live="polite"></span>
+            </div>
+            <small>&#1055;&#1110;&#1076;&#1090;&#1088;&#1080;&#1084;&#1091;&#1102;&#1090;&#1100;&#1089;&#1103; PDF, Word, Excel, PowerPoint, TXT, CSV, &#1072;&#1088;&#1093;&#1110;&#1074;&#1080; &#1090;&#1072; OpenDocument-&#1092;&#1072;&#1081;&#1083;&#1080;.</small>
+            <div id="existing-attachments" class="attachment-list" style="margin-top: 12px;">
+              {% if article and article.attachments %}
+                {% set attachments = article.attachments|from_json if article.attachments else [] %}
+                {% for attachment in attachments %}
+                  <div class="attachment-item" data-attachment-path="{{ attachment.path }}">
+                    <div>
+                      <strong>{{ attachment.name }}</strong>
+                      <div class="muted">{{ attachment.ext|upper }} &middot; {{ format_file_size(attachment.size) }}</div>
+                    </div>
+                    <div class="attachment-actions">
+                      <a class="link" href="{{ uploads_url(attachment.path) }}" target="_blank" rel="noopener">&#1042;&#1110;&#1076;&#1082;&#1088;&#1080;&#1090;&#1080;</a>
+                      <button class="link danger" type="button" onclick="markAttachmentForRemoval(this)">&#1042;&#1080;&#1076;&#1072;&#1083;&#1080;&#1090;&#1080;</button>
+                    </div>
+                  </div>
+                {% endfor %}
+              {% endif %}
+            </div>
+            <div id="new-attachments-preview" class="attachment-list" style="margin-top: 12px;"></div>
+          </div>
+
+          <button class="btn primary" type="submit">{% if article %}&#1047;&#1073;&#1077;&#1088;&#1077;&#1075;&#1090;&#1080;{% else %}&#1057;&#1090;&#1074;&#1086;&#1088;&#1080;&#1090;&#1080;{% endif %}</button>
         </form>
       </div>
     </div>
@@ -199,68 +195,181 @@ function openFilePicker(inputId) {
   if (input) input.click();
 }
 
+function execEditorCommand(command, value = null) {
+  document.execCommand(command, false, value);
+}
+
+function applyBlockFormat(value) {
+  execEditorCommand('formatBlock', value || 'p');
+}
+
+function saveEditorSelection(editor) {
+  const selection = window.getSelection();
+  if (!selection || selection.rangeCount === 0) return null;
+  const range = selection.getRangeAt(0);
+  if (!editor.contains(range.commonAncestorContainer)) return null;
+  return range.cloneRange();
+}
+
+function restoreEditorSelection(editor, range) {
+  const selection = window.getSelection();
+  if (!selection) return;
+  selection.removeAllRanges();
+  if (range) {
+    selection.addRange(range);
+    return;
+  }
+  const fallback = document.createRange();
+  fallback.selectNodeContents(editor);
+  fallback.collapse(false);
+  selection.addRange(fallback);
+}
+
+function getFileEmbedKind(filename) {
+  const ext = (filename.split('.').pop() || '').toLowerCase();
+  if (['pdf'].includes(ext)) return 'pdf';
+  if (['doc', 'docx', 'odt', 'rtf'].includes(ext)) return 'word';
+  if (['xls', 'xlsx', 'csv', 'ods'].includes(ext)) return 'sheet';
+  if (['ppt', 'pptx', 'odp'].includes(ext)) return 'slide';
+  if (['zip', 'rar', '7z'].includes(ext)) return 'archive';
+  if (['txt', 'md'].includes(ext)) return 'text';
+  return 'file';
+}
+
+function getFileEmbedMeta(kind) {
+  const config = {
+    pdf: {label: 'PDF', title: '\u0414\u043E\u043A\u0443\u043C\u0435\u043D\u0442 PDF', className: 'is-pdf'},
+    word: {label: 'DOC', title: '\u0414\u043E\u043A\u0443\u043C\u0435\u043D\u0442 Word', className: 'is-word'},
+    sheet: {label: 'XLS', title: '\u0422\u0430\u0431\u043B\u0438\u0446\u044F', className: 'is-sheet'},
+    slide: {label: 'PPT', title: '\u041F\u0440\u0435\u0437\u0435\u043D\u0442\u0430\u0446\u0456\u044F', className: 'is-slide'},
+    archive: {label: 'ZIP', title: '\u0410\u0440\u0445\u0456\u0432', className: 'is-archive'},
+    text: {label: 'TXT', title: '\u0422\u0435\u043A\u0441\u0442\u043E\u0432\u0438\u0439 \u0444\u0430\u0439\u043B', className: 'is-text'},
+    file: {label: 'FILE', title: '\u0424\u0430\u0439\u043B', className: 'is-file'},
+  };
+  return config[kind] || config.file;
+}
+
+function decorateFileEmbed(node) {
+  if (!node || node.querySelector('.file-embed-remove')) return;
+  const removeBtn = document.createElement('button');
+  removeBtn.type = 'button';
+  removeBtn.className = 'file-embed-remove';
+  removeBtn.setAttribute('aria-label', '\u0412\u0438\u0434\u0430\u043B\u0438\u0442\u0438 \u0444\u0430\u0439\u043B');
+  removeBtn.innerHTML = '&times;';
+  node.appendChild(removeBtn);
+}
+
 function initRichEditor() {
   const editor = document.getElementById('content-editor');
   const textarea = document.getElementById('content-textarea');
   const form = editor ? editor.closest('form') : null;
+  let savedRange = null;
   if (!editor || !textarea || !form) return;
 
   const initial = editor.dataset.initial ? JSON.parse(editor.dataset.initial) : '';
-  if (initial) {
-    editor.innerHTML = initial;
-  } else {
-    editor.innerHTML = '';
-  }
+  editor.innerHTML = initial || '';
+  editor.querySelectorAll('.file-embed').forEach(decorateFileEmbed);
 
   function sync() {
-    textarea.value = editor.innerHTML.trim();
+    const clone = editor.cloneNode(true);
+    clone.querySelectorAll('.file-embed-remove').forEach((el) => el.remove());
+    textarea.value = clone.innerHTML.trim();
   }
 
   form.addEventListener('submit', (e) => {
     sync();
     if (!textarea.value) {
       e.preventDefault();
-      alert('Заповніть повний текст статті.');
+      alert('\u0417\u0430\u043F\u043E\u0432\u043D\u0456\u0442\u044C \u043F\u043E\u0432\u043D\u0438\u0439 \u0442\u0435\u043A\u0441\u0442 \u0441\u0442\u0430\u0442\u0442\u0456.');
       editor.focus();
     }
   });
 
   editor.addEventListener('input', sync);
+  editor.addEventListener('click', (event) => {
+    const removeBtn = event.target.closest('.file-embed-remove');
+    if (!removeBtn) return;
+    const card = removeBtn.closest('.file-embed');
+    if (card) {
+      card.remove();
+      sync();
+    }
+  });
+  editor.addEventListener('keyup', () => {
+    savedRange = saveEditorSelection(editor);
+  });
+  editor.addEventListener('mouseup', () => {
+    savedRange = saveEditorSelection(editor);
+  });
+  editor.addEventListener('focus', () => {
+    savedRange = saveEditorSelection(editor) || savedRange;
+  });
   sync();
 
-  // Toolbar handling
   document.querySelectorAll('.editor-toolbar button[data-cmd]').forEach((el) => {
     el.addEventListener('click', () => {
       const cmd = el.getAttribute('data-cmd');
       if (!cmd) return;
-      document.execCommand(cmd, false, null);
       editor.focus();
+      restoreEditorSelection(editor, savedRange);
+      execEditorCommand(cmd);
+      editor.focus();
+      savedRange = saveEditorSelection(editor);
       sync();
     });
   });
+
   document.querySelectorAll('.editor-toolbar select[data-cmd]').forEach((el) => {
     el.addEventListener('change', () => {
-      const cmd = el.getAttribute('data-cmd');
-      const value = el.value;
-      document.execCommand(cmd, false, value);
       editor.focus();
+      restoreEditorSelection(editor, savedRange);
+      execEditorCommand(el.getAttribute('data-cmd'), el.value);
+      editor.focus();
+      savedRange = saveEditorSelection(editor);
       sync();
     });
   });
 
-  // PDF insertion
-  const pdfBtn = document.getElementById('insert-pdf-btn');
-  const pdfInput = document.getElementById('pdf-input');
-  if (pdfBtn && pdfInput) {
-    pdfBtn.addEventListener('click', () => pdfInput.click());
-    pdfInput.addEventListener('change', async () => {
-      const file = pdfInput.files && pdfInput.files[0];
-      if (!file) return;
+  document.querySelectorAll('.editor-toolbar select[data-block]').forEach((el) => {
+    el.addEventListener('change', () => {
+      editor.focus();
+      restoreEditorSelection(editor, savedRange);
+      applyBlockFormat(el.value || 'p');
+      editor.focus();
+      savedRange = saveEditorSelection(editor);
+      sync();
+      el.value = '';
+    });
+  });
 
+  const linkBtn = document.getElementById('insert-link-btn');
+  if (linkBtn) {
+    linkBtn.addEventListener('click', () => {
+      const href = window.prompt('\u0412\u0441\u0442\u0430\u0432\u0442\u0435 URL \u043F\u043E\u0441\u0438\u043B\u0430\u043D\u043D\u044F');
+      if (!href) return;
+      editor.focus();
+      restoreEditorSelection(editor, savedRange);
+      execEditorCommand('createLink', href.trim());
+      editor.focus();
+      savedRange = saveEditorSelection(editor);
+      sync();
+    });
+  }
+
+  const documentBtn = document.getElementById('insert-document-btn');
+  const documentInput = document.getElementById('document-input');
+  if (documentBtn && documentInput) {
+    documentBtn.addEventListener('click', () => {
+      savedRange = saveEditorSelection(editor) || savedRange;
+      documentInput.click();
+    });
+    documentInput.addEventListener('change', async () => {
+      const file = documentInput.files && documentInput.files[0];
+      if (!file) return;
       try {
         const formData = new FormData();
-        formData.append('pdf', file);
-        const res = await fetch('/admin/uploads/pdf', {
+        formData.append('document', file);
+        const res = await fetch('/admin/uploads/document', {
           method: 'POST',
           body: formData,
           credentials: 'same-origin',
@@ -269,16 +378,33 @@ function initRichEditor() {
         if (!res.ok || !data.url) {
           throw new Error(data.error || 'Upload failed');
         }
-
-        const safeName = (data.name || file.name || 'PDF').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        const html = `<a href="${data.url}" target="_blank" rel="noopener">📄 ${safeName}</a>`;
+        const safeName = (data.name || file.name || 'File').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const kind = getFileEmbedKind(safeName);
+        const meta = getFileEmbedMeta(kind);
+        const html = `
+          <div class="file-embed ${meta.className}">
+            <a class="file-embed-link" href="${data.url}" target="_blank" rel="noopener">
+              <span class="file-embed-icon">
+                <span class="file-embed-ext">${meta.label}</span>
+              </span>
+              <span class="file-embed-body">
+                <strong class="file-embed-name">${safeName}</strong>
+                <span class="file-embed-meta">${meta.title}</span>
+              </span>
+            </a>
+          </div>
+          <p><br></p>
+        `;
         editor.focus();
-        document.execCommand('insertHTML', false, html);
+        restoreEditorSelection(editor, savedRange);
+        execEditorCommand('insertHTML', html);
+        editor.querySelectorAll('.file-embed').forEach(decorateFileEmbed);
+        savedRange = saveEditorSelection(editor);
         sync();
       } catch (err) {
-        alert('Не вдалося завантажити PDF. ' + (err && err.message ? err.message : ''));
+        alert('\u041D\u0435 \u0432\u0434\u0430\u043B\u043E\u0441\u044F \u0437\u0430\u0432\u0430\u043D\u0442\u0430\u0436\u0438\u0442\u0438 \u0444\u0430\u0439\u043B. ' + (err && err.message ? err.message : ''));
       } finally {
-        pdfInput.value = '';
+        documentInput.value = '';
       }
     });
   }
@@ -291,11 +417,7 @@ function renderSelectedFiles(files, targetId) {
     target.textContent = '';
     return;
   }
-  if (files.length === 1) {
-    target.textContent = files[0].name;
-    return;
-  }
-  target.textContent = `${files.length} файлів`;
+  target.textContent = files.length === 1 ? files[0].name : `${files.length} \u0444\u0430\u0439\u043B\u0456\u0432`;
 }
 
 function clearFileInput(inputId) {
@@ -307,15 +429,10 @@ function restoreExistingFeaturedPreview() {
   const preview = document.getElementById('featured-preview');
   const removeFlag = document.getElementById('remove-featured-image');
   if (!preview) return;
-
   const existingUrl = preview.dataset.existingUrl || '';
   const isRemoved = removeFlag && removeFlag.value === '1';
-
   if (existingUrl && !isRemoved) {
-    preview.innerHTML = `
-      <img src="${existingUrl}" style="max-width: 260px; max-height: 180px; object-fit: contain; background: #f8fafc; border-radius: 8px;" alt="Preview">
-      <br><small>Поточне зображення</small>
-    `;
+    preview.innerHTML = `<img src="${existingUrl}" style="max-width: 260px; max-height: 180px; object-fit: contain; background: #f8fafc; border-radius: 8px;" alt="Preview"><br><small>\u041F\u043E\u0442\u043E\u0447\u043D\u0435 \u0437\u043E\u0431\u0440\u0430\u0436\u0435\u043D\u043D\u044F</small>`;
     return;
   }
   preview.innerHTML = '';
@@ -335,9 +452,7 @@ function removeCurrentFeaturedImage() {
   clearFileInput('featured-image-input');
   renderSelectedFiles([], 'featured-image-name');
   const preview = document.getElementById('featured-preview');
-  if (preview) {
-    preview.innerHTML = '<small>Зображення буде видалено після збереження.</small>';
-  }
+  if (preview) preview.innerHTML = '<small>\u0417\u043E\u0431\u0440\u0430\u0436\u0435\u043D\u043D\u044F \u0431\u0443\u0434\u0435 \u0432\u0438\u0434\u0430\u043B\u0435\u043D\u043E \u043F\u0456\u0441\u043B\u044F \u0437\u0431\u0435\u0440\u0435\u0436\u0435\u043D\u043D\u044F.</small>';
 }
 
 function handleFeaturedImageChange(event) {
@@ -347,39 +462,27 @@ function handleFeaturedImageChange(event) {
   previewFeaturedImage(event);
 }
 
-function handleGalleryImagesChange(event) {
-  renderSelectedFiles(event.target.files, 'gallery-images-name');
-  previewGalleryImages(event);
-}
-
 function previewFeaturedImage(event) {
   const file = event.target.files[0];
   const preview = document.getElementById('featured-preview');
-  
-  if (file) {
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      preview.innerHTML = `
-        <img src="${e.target.result}" style="max-width: 260px; max-height: 180px; object-fit: contain; background: #f8fafc; border-radius: 8px;" alt="Preview">
-        <br><small>Нове зображення</small>
-      `;
-    }
-    reader.readAsDataURL(file);
-  } else {
+  if (!preview) return;
+  if (!file) {
     restoreExistingFeaturedPreview();
+    return;
   }
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    preview.innerHTML = `<img src="${e.target.result}" style="max-width: 260px; max-height: 180px; object-fit: contain; background: #f8fafc; border-radius: 8px;" alt="Preview"><br><small>\u041D\u043E\u0432\u0435 \u0437\u043E\u0431\u0440\u0430\u0436\u0435\u043D\u043D\u044F</small>`;
+  };
+  reader.readAsDataURL(file);
 }
 
-function previewGalleryImages(event) {
+function handleGalleryImagesChange(event) {
+  renderSelectedFiles(event.target.files, 'gallery-images-name');
   const preview = document.getElementById('gallery-new-preview');
   if (!preview) return;
-
-  const files = event.target.files ? Array.from(event.target.files) : [];
   preview.innerHTML = '';
-
-  if (files.length === 0) return;
-
-  files.forEach((file, index) => {
+  Array.from(event.target.files || []).forEach((file, index) => {
     const reader = new FileReader();
     reader.onload = function(e) {
       const img = document.createElement('img');
@@ -393,19 +496,35 @@ function previewGalleryImages(event) {
     };
     reader.readAsDataURL(file);
   });
+}
 
-  const br = document.createElement('br');
-  const small = document.createElement('small');
-  small.textContent = 'Нові зображення галереї';
-  preview.appendChild(br);
-  preview.appendChild(small);
+function handleArticleDocumentsChange(event) {
+  renderSelectedFiles(event.target.files, 'article-documents-name');
+  const preview = document.getElementById('new-attachments-preview');
+  if (!preview) return;
+  preview.innerHTML = '';
+  Array.from(event.target.files || []).forEach((file) => {
+    const ext = (file.name.split('.').pop() || '').toUpperCase();
+    const size = file.size >= 1024 * 1024 ? `${(file.size / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(file.size / 1024))} KB`;
+    const item = document.createElement('div');
+    item.className = 'attachment-item';
+    item.innerHTML = `<div><strong>${file.name}</strong><div class="muted">${ext} &middot; ${size}</div></div><div class="attachment-actions"><span class="badge">\u041D\u043E\u0432\u0438\u0439</span></div>`;
+    preview.appendChild(item);
+  });
 }
 
 function clearGallerySelection() {
   clearFileInput('gallery-images-input');
   renderSelectedFiles([], 'gallery-images-name');
-  const newPreview = document.getElementById('gallery-new-preview');
-  if (newPreview) newPreview.innerHTML = '';
+  const preview = document.getElementById('gallery-new-preview');
+  if (preview) preview.innerHTML = '';
+}
+
+function clearDocumentSelection() {
+  clearFileInput('article-documents-input');
+  renderSelectedFiles([], 'article-documents-name');
+  const preview = document.getElementById('new-attachments-preview');
+  if (preview) preview.innerHTML = '';
 }
 
 function getRemoveGalleryList() {
@@ -421,8 +540,7 @@ function getRemoveGalleryList() {
 
 function setRemoveGalleryList(list) {
   const input = document.getElementById('remove-gallery-images');
-  if (!input) return;
-  input.value = JSON.stringify(list);
+  if (input) input.value = JSON.stringify(list);
 }
 
 function markGalleryImageForRemoval(button) {
@@ -430,16 +548,39 @@ function markGalleryImageForRemoval(button) {
   if (!item) return;
   const path = item.getAttribute('data-gallery-path');
   if (!path) return;
-
   const list = getRemoveGalleryList();
   if (!list.includes(path)) list.push(path);
   setRemoveGalleryList(list);
-
   item.remove();
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  initRichEditor();
-});
+function getRemoveAttachmentList() {
+  const input = document.getElementById('remove-attachments');
+  if (!input) return [];
+  try {
+    const parsed = JSON.parse(input.value || '[]');
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function setRemoveAttachmentList(list) {
+  const input = document.getElementById('remove-attachments');
+  if (input) input.value = JSON.stringify(list);
+}
+
+function markAttachmentForRemoval(button) {
+  const item = button.closest('[data-attachment-path]');
+  if (!item) return;
+  const path = item.getAttribute('data-attachment-path');
+  if (!path) return;
+  const list = getRemoveAttachmentList();
+  if (!list.includes(path)) list.push(path);
+  setRemoveAttachmentList(list);
+  item.remove();
+}
+
+document.addEventListener('DOMContentLoaded', initRichEditor);
 </script>
 {% endblock %}
